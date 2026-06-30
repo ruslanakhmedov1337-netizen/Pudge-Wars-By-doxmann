@@ -7,12 +7,11 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
-            background: #111;
+            background: #0a0a0a;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: monospace;
             overflow: hidden;
             touch-action: none;
         }
@@ -20,17 +19,16 @@
             position: relative;
             width: 100%;
             max-width: 500px;
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 1/1;
             background: #1a1a1a;
-            border: 2px solid #333;
             touch-action: none;
         }
         canvas {
             display: block;
             width: 100%;
             height: 100%;
-            background: #2d2d2d;
             touch-action: none;
+            background: #2d2d2d;
         }
         #ui {
             position: absolute;
@@ -42,15 +40,16 @@
         }
         #score {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 12px;
+            left: 16px;
             color: #fff;
             font-size: 18px;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            font-weight: 600;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+            font-family: 'Inter', sans-serif;
             pointer-events: none;
         }
-        #score span { color: #4caf50; }
+        #score .kills { color: #4caf50; }
         #score .deaths { color: #f44336; }
         #game-over {
             position: absolute;
@@ -58,35 +57,61 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.75);
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             pointer-events: auto;
+            backdrop-filter: blur(4px);
         }
+        #game-over.active { display: flex; }
         #game-over h1 {
-            color: #f44336;
-            font-size: 32px;
-            margin-bottom: 10px;
+            color: #ff1744;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-family: 'Inter', sans-serif;
+            text-shadow: 0 0 30px rgba(255,23,68,0.3);
         }
         #game-over p {
             color: #fff;
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 20px;
+            margin-bottom: 24px;
+            opacity: 0.8;
+            font-family: 'Inter', sans-serif;
         }
         #game-over button {
-            padding: 12px 32px;
+            padding: 14px 40px;
             font-size: 18px;
+            font-weight: 600;
             background: #4caf50;
             border: none;
             color: #fff;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             pointer-events: auto;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
         }
-        #game-over button:active { transform: scale(0.95); }
-        #game-over.active { display: flex; }
+        #game-over button:active { transform: scale(0.95); background: #43a047; }
+        #watermark {
+            position: absolute;
+            bottom: 12px;
+            right: 16px;
+            color: rgba(255,255,255,0.15);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            pointer-events: none;
+            font-family: 'Inter', sans-serif;
+        }
+        @media (max-width: 400px) {
+            #score { font-size: 14px; top: 8px; left: 12px; }
+            #game-over h1 { font-size: 28px; }
+            #game-over p { font-size: 16px; }
+            #game-over button { padding: 12px 28px; font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -94,33 +119,42 @@
     <canvas id="canvas"></canvas>
     <div id="ui">
         <div id="score">
-            🏆 <span id="kills">0</span> &nbsp;|&nbsp; 💀 <span class="deaths" id="deaths">0</span>
+            🏆 <span class="kills" id="killsDisplay">0</span>
+            &nbsp;&nbsp;💀 <span class="deaths" id="deathsDisplay">0</span>
         </div>
         <div id="game-over">
             <h1>💀 YOU DIED</h1>
-            <p>Score: <span id="final-score">0</span></p>
-            <button id="restart-btn">↻ PLAY AGAIN</button>
+            <p>Score: <span id="finalScore">0</span></p>
+            <button id="restartBtn">↻ PLAY AGAIN</button>
         </div>
+        <div id="watermark">PUDGE WARS</div>
     </div>
 </div>
 
 <script>
-// ============================================================
-// 1. CANVAS SETUP
-// ============================================================
+// ================================================================
+// ОРИГИНАЛЬНАЯ ИГРА PUDGE WARS
+// Оригинальные пуджи — зелёные с красными глазами
+// ================================================================
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width = 500;
 const H = canvas.height = 500;
 
-// ============================================================
-// 2. GAME STATE
-// ============================================================
-const state = {
+// DOM
+const killsDisplay = document.getElementById('killsDisplay');
+const deathsDisplay = document.getElementById('deathsDisplay');
+const finalScore = document.getElementById('finalScore');
+const gameOverEl = document.getElementById('game-over');
+const restartBtn = document.getElementById('restartBtn');
+
+// GAME STATE
+const G = {
     kills: 0,
     deaths: 0,
     gameOver: false,
-    hero: { x: W/2, y: H/2, r: 16 },
+    hero: { x: W/2, y: H/2, r: 20 },
     bots: [],
     hook: null,
     particles: [],
@@ -129,17 +163,81 @@ const state = {
     rightJoystick: { active: false, dx: 0, dy: 0, startX: 0, startY: 0, id: null },
     spawnTimer: 0,
     maxBots: 3,
-    botHookCooldown: 0,
     heroHookCooldown: 0,
-    heroMaxHookCooldown: 30,
-    botMaxHookCooldown: 60,
+    heroMaxHookCooldown: 25,
 };
 
-// ============================================================
-// 3. BOTS
-// ============================================================
+// ================================================================
+// ОРИГИНАЛЬНЫЙ ПУДЖ (РИСОВАНИЕ)
+// ================================================================
+function drawPudge(x, y, r, color = '#4caf50', isHero = true) {
+    // Тело
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Тень под глазами (оригинальный стиль)
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 4, r * 0.8, r * 0.3, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Красные глаза (как в оригинале)
+    const eyeY = y - 3;
+    const eyeOffset = r * 0.35;
+    const eyeR = r * 0.25;
+    
+    // Белки
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(x - eyeOffset, eyeY, eyeR * 1.2, eyeR * 1.4, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + eyeOffset, eyeY, eyeR * 1.2, eyeR * 1.4, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Красные зрачки (как у Pudge)
+    ctx.fillStyle = '#ff1744';
+    ctx.shadowColor = '#ff1744';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(x - eyeOffset + 2, eyeY + 1, eyeR * 0.7, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + eyeOffset + 2, eyeY + 1, eyeR * 0.7, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // Рот (шрам как у Pudge)
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y + 6, r * 0.4, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+    
+    // Крюк на спине (только для героя)
+    if (isHero) {
+        ctx.strokeStyle = '#8d6e63';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x + r * 0.6, y - r * 0.3);
+        ctx.lineTo(x + r * 1.2, y - r * 0.6);
+        ctx.lineTo(x + r * 1.4, y - r * 0.2);
+        ctx.stroke();
+        // Крюк
+        ctx.fillStyle = '#ff6b6b';
+        ctx.beginPath();
+        ctx.arc(x + r * 1.3, y - r * 0.1, 4, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+}
+
+// ================================================================
+// BOTS
+// ================================================================
 function createBots() {
-    state.bots = [];
+    G.bots = [];
     const colors = ['#c0392b', '#2980b9', '#8e44ad'];
     const positions = [
         { x: 80, y: 80 },
@@ -147,10 +245,10 @@ function createBots() {
         { x: 80, y: H - 80 },
     ];
     for (let i = 0; i < 3; i++) {
-        state.bots.push({
+        G.bots.push({
             x: positions[i].x,
             y: positions[i].y,
-            r: 16,
+            r: 18,
             color: colors[i],
             alive: true,
             hookCooldown: 0,
@@ -163,222 +261,14 @@ function createBots() {
     }
 }
 
-// ============================================================
-// 4. JOYSTICKS
-// ============================================================
-function handleTouchStart(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    for (const touch of e.changedTouches) {
-        const x = (touch.clientX - rect.left) * (W / rect.width);
-        const y = (touch.clientY - rect.top) * (H / rect.height);
-        if (x < W / 2) {
-            state.leftJoystick.active = true;
-            state.leftJoystick.id = touch.identifier;
-            state.leftJoystick.startX = x;
-            state.leftJoystick.startY = y;
-            state.leftJoystick.dx = 0;
-            state.leftJoystick.dy = 0;
-        } else {
-            state.rightJoystick.active = true;
-            state.rightJoystick.id = touch.identifier;
-            state.rightJoystick.startX = x;
-            state.rightJoystick.startY = y;
-            state.rightJoystick.dx = 0;
-            state.rightJoystick.dy = 0;
-        }
-    }
-}
-
-function handleTouchMove(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    for (const touch of e.changedTouches) {
-        const x = (touch.clientX - rect.left) * (W / rect.width);
-        const y = (touch.clientY - rect.top) * (H / rect.height);
-        if (state.leftJoystick.id === touch.identifier && state.leftJoystick.active) {
-            const dx = x - state.leftJoystick.startX;
-            const dy = y - state.leftJoystick.startY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            const maxDist = 50;
-            if (dist > 0) {
-                const angle = Math.atan2(dy, dx);
-                const move = Math.min(dist / 15, 1) * 3;
-                state.hero.x += Math.cos(angle) * move;
-                state.hero.y += Math.sin(angle) * move;
-                state.hero.x = Math.max(20, Math.min(W - 20, state.hero.x));
-                state.hero.y = Math.max(20, Math.min(H - 20, state.hero.y));
-            }
-            if (dist > maxDist) {
-                state.leftJoystick.dx = (dx / dist) * maxDist;
-                state.leftJoystick.dy = (dy / dist) * maxDist;
-            } else {
-                state.leftJoystick.dx = dx;
-                state.leftJoystick.dy = dy;
-            }
-        }
-        if (state.rightJoystick.id === touch.identifier && state.rightJoystick.active) {
-            const dx = x - state.rightJoystick.startX;
-            const dy = y - state.rightJoystick.startY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 5) state.aimAngle = Math.atan2(dy, dx);
-            const maxDist = 60;
-            if (dist > maxDist) {
-                state.rightJoystick.dx = (dx / dist) * maxDist;
-                state.rightJoystick.dy = (dy / dist) * maxDist;
-            } else {
-                state.rightJoystick.dx = dx;
-                state.rightJoystick.dy = dy;
-            }
-        }
-    }
-}
-
-function handleTouchEnd(e) {
-    e.preventDefault();
-    for (const touch of e.changedTouches) {
-        if (state.leftJoystick.id === touch.identifier) {
-            state.leftJoystick.active = false;
-            state.leftJoystick.dx = 0;
-            state.leftJoystick.dy = 0;
-            state.leftJoystick.id = null;
-        }
-        if (state.rightJoystick.id === touch.identifier) {
-            const dist = Math.sqrt(state.rightJoystick.dx**2 + state.rightJoystick.dy**2);
-            if (dist > 20) throwHook(state.aimAngle);
-            state.rightJoystick.active = false;
-            state.rightJoystick.dx = 0;
-            state.rightJoystick.dy = 0;
-            state.rightJoystick.id = null;
-        }
-    }
-}
-
-canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
-// Mouse fallback
-let mouseDown = false;
-canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (W / rect.width);
-    const y = (e.clientY - rect.top) * (H / rect.height);
-    if (x < W/2) {
-        state.leftJoystick.active = true;
-        state.leftJoystick.startX = x;
-        state.leftJoystick.startY = y;
-    } else {
-        state.rightJoystick.active = true;
-        state.rightJoystick.startX = x;
-        state.rightJoystick.startY = y;
-    }
-    mouseDown = true;
-});
-canvas.addEventListener('mousemove', (e) => {
-    if (!mouseDown) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (W / rect.width);
-    const y = (e.clientY - rect.top) * (H / rect.height);
-    if (state.leftJoystick.active) {
-        const dx = x - state.leftJoystick.startX;
-        const dy = y - state.leftJoystick.startY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 0) {
-            const angle = Math.atan2(dy, dx);
-            const move = Math.min(dist / 15, 1) * 3;
-            state.hero.x += Math.cos(angle) * move;
-            state.hero.y += Math.sin(angle) * move;
-            state.hero.x = Math.max(20, Math.min(W - 20, state.hero.x));
-            state.hero.y = Math.max(20, Math.min(H - 20, state.hero.y));
-        }
-        const maxDist = 50;
-        if (dist > maxDist) {
-            state.leftJoystick.dx = (dx / dist) * maxDist;
-            state.leftJoystick.dy = (dy / dist) * maxDist;
-        } else {
-            state.leftJoystick.dx = dx;
-            state.leftJoystick.dy = dy;
-        }
-    }
-    if (state.rightJoystick.active) {
-        const dx = x - state.rightJoystick.startX;
-        const dy = y - state.rightJoystick.startY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 5) state.aimAngle = Math.atan2(dy, dx);
-        const maxDist = 60;
-        if (dist > maxDist) {
-            state.rightJoystick.dx = (dx / dist) * maxDist;
-            state.rightJoystick.dy = (dy / dist) * maxDist;
-        } else {
-            state.rightJoystick.dx = dx;
-            state.rightJoystick.dy = dy;
-        }
-    }
-});
-canvas.addEventListener('mouseup', () => {
-    if (state.rightJoystick.active) {
-        const dist = Math.sqrt(state.rightJoystick.dx**2 + state.rightJoystick.dy**2);
-        if (dist > 20) throwHook(state.aimAngle);
-    }
-    state.leftJoystick.active = false;
-    state.leftJoystick.dx = 0;
-    state.rightJoystick.active = false;
-    state.rightJoystick.dx = 0;
-    mouseDown = false;
-});
-canvas.addEventListener('mouseleave', () => {
-    state.leftJoystick.active = false;
-    state.leftJoystick.dx = 0;
-    state.rightJoystick.active = false;
-    state.rightJoystick.dx = 0;
-    mouseDown = false;
-});
-
-// ============================================================
-// 5. HOOK
-// ============================================================
-function throwHook(angle) {
-    if (state.heroHookCooldown > 0 || state.hook || state.gameOver) return;
-    state.heroHookCooldown = state.heroMaxHookCooldown;
-    const startX = state.hero.x, startY = state.hero.y;
-    const length = 280;
-    const endX = startX + Math.cos(angle) * length;
-    const endY = startY + Math.sin(angle) * length;
-    state.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 20 };
-    // Check hit on bots
-    for (const bot of state.bots) {
-        if (!bot.alive) continue;
-        const d = distToSegment(bot.x, bot.y, startX, startY, endX, endY);
-        if (d < 25) {
-            bot.alive = false;
-            bot.respawnTimer = 180;
-            state.kills++;
-            updateUI();
-            spawnParticles(bot.x, bot.y, '#ff6b6b', 20);
-        }
-    }
-}
-
-function distToSegment(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1, dy = y2 - y1;
-    const lenSq = dx*dx + dy*dy;
-    if (lenSq === 0) return Math.sqrt((px-x1)**2 + (py-y1)**2);
-    let t = ((px-x1)*dx + (py-y1)*dy) / lenSq;
-    t = Math.max(0, Math.min(1, t));
-    const projX = x1 + t*dx, projY = y1 + t*dy;
-    return Math.sqrt((px-projX)**2 + (py-projY)**2);
-}
-
-// ============================================================
-// 6. PARTICLES
-// ============================================================
-function spawnParticles(x, y, color, count = 15) {
+// ================================================================
+// PARTICLES
+// ================================================================
+function spawnParticles(x, y, color, count = 18) {
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * 2 * Math.PI;
         const speed = 1 + Math.random() * 3;
-        state.particles.push({
+        G.particles.push({
             x, y,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
@@ -390,11 +280,227 @@ function spawnParticles(x, y, color, count = 15) {
     }
 }
 
-// ============================================================
-// 7. BOTS AI
-// ============================================================
+// ================================================================
+// HOOK
+// ================================================================
+function throwHook(angle) {
+    if (G.heroHookCooldown > 0 || G.hook || G.gameOver) return;
+    G.heroHookCooldown = G.heroMaxHookCooldown;
+    const startX = G.hero.x, startY = G.hero.y;
+    const length = 280;
+    const endX = startX + Math.cos(angle) * length;
+    const endY = startY + Math.sin(angle) * length;
+    G.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 22 };
+
+    for (const bot of G.bots) {
+        if (!bot.alive) continue;
+        const d = distToSegment(bot.x, bot.y, startX, startY, endX, endY);
+        if (d < 28) {
+            bot.alive = false;
+            bot.respawnTimer = 180;
+            G.kills++;
+            updateUI();
+            spawnParticles(bot.x, bot.y, '#ff6b6b', 24);
+        }
+    }
+}
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx*dx + dy*dy;
+    if (lenSq === 0) return Math.sqrt((px-x1)*(px-x1) + (py-y1)*(py-y1));
+    let t = ((px-x1)*dx + (py-y1)*dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + t*dx, projY = y1 + t*dy;
+    return Math.sqrt((px-projX)*(px-projX) + (py-projY)*(py-projY));
+}
+
+// ================================================================
+// JOYSTICKS
+// ================================================================
+function handleTouchStart(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    for (const touch of e.changedTouches) {
+        const x = (touch.clientX - rect.left) * (W / rect.width);
+        const y = (touch.clientY - rect.top) * (H / rect.height);
+        if (x < W / 2) {
+            G.leftJoystick.active = true;
+            G.leftJoystick.id = touch.identifier;
+            G.leftJoystick.startX = x;
+            G.leftJoystick.startY = y;
+            G.leftJoystick.dx = 0;
+            G.leftJoystick.dy = 0;
+        } else {
+            G.rightJoystick.active = true;
+            G.rightJoystick.id = touch.identifier;
+            G.rightJoystick.startX = x;
+            G.rightJoystick.startY = y;
+            G.rightJoystick.dx = 0;
+            G.rightJoystick.dy = 0;
+        }
+    }
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    for (const touch of e.changedTouches) {
+        const x = (touch.clientX - rect.left) * (W / rect.width);
+        const y = (touch.clientY - rect.top) * (H / rect.height);
+        if (G.leftJoystick.id === touch.identifier && G.leftJoystick.active) {
+            const dx = x - G.leftJoystick.startX;
+            const dy = y - G.leftJoystick.startY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 0) {
+                const angle = Math.atan2(dy, dx);
+                const move = Math.min(dist / 14, 1) * 3.2;
+                G.hero.x += Math.cos(angle) * move;
+                G.hero.y += Math.sin(angle) * move;
+                G.hero.x = Math.max(20, Math.min(W - 20, G.hero.x));
+                G.hero.y = Math.max(20, Math.min(H - 20, G.hero.y));
+            }
+            const maxDist = 50;
+            if (dist > maxDist) {
+                G.leftJoystick.dx = (dx / dist) * maxDist;
+                G.leftJoystick.dy = (dy / dist) * maxDist;
+            } else {
+                G.leftJoystick.dx = dx;
+                G.leftJoystick.dy = dy;
+            }
+        }
+        if (G.rightJoystick.id === touch.identifier && G.rightJoystick.active) {
+            const dx = x - G.rightJoystick.startX;
+            const dy = y - G.rightJoystick.startY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 5) G.aimAngle = Math.atan2(dy, dx);
+            const maxDist = 60;
+            if (dist > maxDist) {
+                G.rightJoystick.dx = (dx / dist) * maxDist;
+                G.rightJoystick.dy = (dy / dist) * maxDist;
+            } else {
+                G.rightJoystick.dx = dx;
+                G.rightJoystick.dy = dy;
+            }
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+        if (G.leftJoystick.id === touch.identifier) {
+            G.leftJoystick.active = false;
+            G.leftJoystick.dx = 0;
+            G.leftJoystick.dy = 0;
+            G.leftJoystick.id = null;
+        }
+        if (G.rightJoystick.id === touch.identifier) {
+            const dist = Math.sqrt(G.rightJoystick.dx**2 + G.rightJoystick.dy**2);
+            if (dist > 20) throwHook(G.aimAngle);
+            G.rightJoystick.active = false;
+            G.rightJoystick.dx = 0;
+            G.rightJoystick.dy = 0;
+            G.rightJoystick.id = null;
+        }
+    }
+}
+
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+// MOUSE FALLBACK
+let mouseDown = false;
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (W / rect.width);
+    const y = (e.clientY - rect.top) * (H / rect.height);
+    if (x < W/2) {
+        G.leftJoystick.active = true;
+        G.leftJoystick.startX = x;
+        G.leftJoystick.startY = y;
+    } else {
+        G.rightJoystick.active = true;
+        G.rightJoystick.startX = x;
+        G.rightJoystick.startY = y;
+    }
+    mouseDown = true;
+});
+canvas.addEventListener('mousemove', (e) => {
+    if (!mouseDown) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (W / rect.width);
+    const y = (e.clientY - rect.top) * (H / rect.height);
+    if (G.leftJoystick.active) {
+        const dx = x - G.leftJoystick.startX;
+        const dy = y - G.leftJoystick.startY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 0) {
+            const angle = Math.atan2(dy, dx);
+            const move = Math.min(dist / 14, 1) * 3.2;
+            G.hero.x += Math.cos(angle) * move;
+            G.hero.y += Math.sin(angle) * move;
+            G.hero.x = Math.max(20, Math.min(W - 20, G.hero.x));
+            G.hero.y = Math.max(20, Math.min(H - 20, G.hero.y));
+        }
+        const maxDist = 50;
+        if (dist > maxDist) {
+            G.leftJoystick.dx = (dx / dist) * maxDist;
+            G.leftJoystick.dy = (dy / dist) * maxDist;
+        } else {
+            G.leftJoystick.dx = dx;
+            G.leftJoystick.dy = dy;
+        }
+    }
+    if (G.rightJoystick.active) {
+        const dx = x - G.rightJoystick.startX;
+        const dy = y - G.rightJoystick.startY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 5) G.aimAngle = Math.atan2(dy, dx);
+        const maxDist = 60;
+        if (dist > maxDist) {
+            G.rightJoystick.dx = (dx / dist) * maxDist;
+            G.rightJoystick.dy = (dy / dist) * maxDist;
+        } else {
+            G.rightJoystick.dx = dx;
+            G.rightJoystick.dy = dy;
+        }
+    }
+});
+canvas.addEventListener('mouseup', () => {
+    if (G.rightJoystick.active) {
+        const dist = Math.sqrt(G.rightJoystick.dx**2 + G.rightJoystick.dy**2);
+        if (dist > 20) throwHook(G.aimAngle);
+    }
+    G.leftJoystick.active = false;
+    G.leftJoystick.dx = 0;
+    G.rightJoystick.active = false;
+    G.rightJoystick.dx = 0;
+    mouseDown = false;
+});
+canvas.addEventListener('mouseleave', () => {
+    G.leftJoystick.active = false;
+    G.leftJoystick.dx = 0;
+    G.rightJoystick.active = false;
+    G.rightJoystick.dx = 0;
+    mouseDown = false;
+});
+
+// ================================================================
+// UI
+// ================================================================
+function updateUI() {
+    killsDisplay.textContent = G.kills;
+    deathsDisplay.textContent = G.deaths;
+}
+
+// ================================================================
+// BOTS AI
+// ================================================================
 function updateBots() {
-    for (const bot of state.bots) {
+    for (const bot of G.bots) {
         if (!bot.alive) {
             bot.respawnTimer--;
             if (bot.respawnTimer <= 0) {
@@ -405,8 +511,8 @@ function updateBots() {
             }
             continue;
         }
-        const dx = state.hero.x - bot.x;
-        const dy = state.hero.y - bot.y;
+        const dx = G.hero.x - bot.x;
+        const dy = G.hero.y - bot.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
         if (dist > 60) {
             const speed = 0.8;
@@ -425,14 +531,14 @@ function updateBots() {
             const len = 260;
             const endX = startX + Math.cos(angle) * len;
             const endY = startY + Math.sin(angle) * len;
-            const d = distToSegment(state.hero.x, state.hero.y, startX, startY, endX, endY);
-            if (d < 25) {
-                state.deaths++;
-                state.gameOver = true;
-                document.getElementById('final-score').textContent = state.kills;
-                document.getElementById('game-over').classList.add('active');
+            const d = distToSegment(G.hero.x, G.hero.y, startX, startY, endX, endY);
+            if (d < 28) {
+                G.deaths++;
+                G.gameOver = true;
+                finalScore.textContent = G.kills;
+                gameOverEl.classList.add('active');
                 updateUI();
-                spawnParticles(state.hero.x, state.hero.y, '#ff1744', 30);
+                spawnParticles(G.hero.x, G.hero.y, '#ff1744', 30);
             }
             bot.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 20 };
         }
@@ -443,47 +549,34 @@ function updateBots() {
     }
 }
 
-// ============================================================
-// 8. UI
-// ============================================================
-function updateUI() {
-    document.getElementById('kills').textContent = state.kills;
-    document.getElementById('deaths').textContent = state.deaths;
-}
-
-// ============================================================
-// 9. GAME LOOP
-// ============================================================
+// ================================================================
+// GAME LOOP
+// ================================================================
 function update() {
-    if (state.gameOver) return;
+    if (G.gameOver) return;
 
-    // Cooldowns
-    if (state.heroHookCooldown > 0) state.heroHookCooldown--;
+    if (G.heroHookCooldown > 0) G.heroHookCooldown--;
 
-    // Hook life
-    if (state.hook) {
-        state.hook.life--;
-        if (state.hook.life <= 0) state.hook = null;
+    if (G.hook) {
+        G.hook.life--;
+        if (G.hook.life <= 0) G.hook = null;
     }
 
-    // Particles
-    for (let i = state.particles.length - 1; i >= 0; i--) {
-        const p = state.particles[i];
+    for (let i = G.particles.length - 1; i >= 0; i--) {
+        const p = G.particles[i];
         p.x += p.vx;
         p.y += p.vy;
         p.life--;
-        if (p.life <= 0) state.particles.splice(i, 1);
+        if (p.life <= 0) G.particles.splice(i, 1);
     }
 
-    // Bots
     updateBots();
 
-    // Respawn bots
-    state.spawnTimer++;
-    const alive = state.bots.filter(b => b.alive).length;
-    if (state.spawnTimer > 120 && alive < state.maxBots) {
-        state.spawnTimer = 0;
-        for (const bot of state.bots) {
+    G.spawnTimer++;
+    const alive = G.bots.filter(b => b.alive).length;
+    if (G.spawnTimer > 120 && alive < G.maxBots) {
+        G.spawnTimer = 0;
+        for (const bot of G.bots) {
             if (!bot.alive) {
                 bot.alive = true;
                 bot.x = 30 + Math.random() * (W - 60);
@@ -498,10 +591,9 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, W, H);
 
-    // Background / Arena
+    // ARENA
     ctx.fillStyle = '#2d2d2d';
     ctx.fillRect(0, 0, W, H);
-    // Grid
     ctx.strokeStyle = 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     for (let x = 0; x < W; x += 40) {
@@ -516,37 +608,14 @@ function draw() {
         ctx.lineTo(W, y);
         ctx.stroke();
     }
-    // Border
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, W-4, H-4);
 
-    // Draw bots
-    for (const bot of state.bots) {
+    // BOTS (ОРИГИНАЛЬНЫЕ ПУДЖИ)
+    for (const bot of G.bots) {
         if (!bot.alive) continue;
-        // Body
-        ctx.fillStyle = bot.color;
-        ctx.beginPath();
-        ctx.arc(bot.x, bot.y, bot.r, 0, 2 * Math.PI);
-        ctx.fill();
-        // Eyes
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(bot.x - 6, bot.y - 5, 4, 0, 2 * Math.PI);
-        ctx.arc(bot.x + 6, bot.y - 5, 4, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.fillStyle = '#222';
-        ctx.beginPath();
-        ctx.arc(bot.x - 7, bot.y - 6, 2, 0, 2 * Math.PI);
-        ctx.arc(bot.x + 5, bot.y - 6, 2, 0, 2 * Math.PI);
-        ctx.fill();
-        // Mouth
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(bot.x, bot.y + 5, 6, 0, Math.PI);
-        ctx.stroke();
-        // Hook
+        drawPudge(bot.x, bot.y, bot.r, bot.color, false);
         if (bot.hook) {
             ctx.strokeStyle = '#ff6b6b';
             ctx.lineWidth = 3;
@@ -561,115 +630,96 @@ function draw() {
         }
     }
 
-    // Hero (Pudge)
-    const h = state.hero;
-    // Body
-    ctx.fillStyle = '#4caf50';
-    ctx.beginPath();
-    ctx.arc(h.x, h.y, h.r, 0, 2 * Math.PI);
-    ctx.fill();
-    // Eyes
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(h.x - 7, h.y - 6, 5, 0, 2 * Math.PI);
-    ctx.arc(h.x + 7, h.y - 6, 5, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.fillStyle = '#222';
-    ctx.beginPath();
-    ctx.arc(h.x - 8, h.y - 7, 2.5, 0, 2 * Math.PI);
-    ctx.arc(h.x + 6, h.y - 7, 2.5, 0, 2 * Math.PI);
-    ctx.fill();
-    // Mouth
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(h.x, h.y + 6, 7, 0, Math.PI);
-    ctx.stroke();
-    // Hook indicator
-    if (state.hook) {
+    // PLAYER HOOK
+    if (G.hook) {
         ctx.strokeStyle = '#ff6b6b';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(state.hook.x1, state.hook.y1);
-        ctx.lineTo(state.hook.x2, state.hook.y2);
+        ctx.moveTo(G.hook.x1, G.hook.y1);
+        ctx.lineTo(G.hook.x2, G.hook.y2);
         ctx.stroke();
         ctx.fillStyle = '#ff6b6b';
         ctx.beginPath();
-        ctx.arc(state.hook.x2, state.hook.y2, 8, 0, 2 * Math.PI);
+        ctx.arc(G.hook.x2, G.hook.y2, 8, 0, 2 * Math.PI);
         ctx.fill();
     }
 
-    // Aim line
-    if (state.rightJoystick.active && state.rightJoystick.dx !== 0) {
-        const angle = state.aimAngle;
+    // HERO (ОРИГИНАЛЬНЫЙ ПУДЖ)
+    drawPudge(G.hero.x, G.hero.y, G.hero.r, '#4caf50', true);
+
+    // AIM LINE
+    if (G.rightJoystick.active && G.rightJoystick.dx !== 0) {
+        const angle = G.aimAngle;
         const len = 60;
+        const endX = G.hero.x + Math.cos(angle) * len;
+        const endY = G.hero.y + Math.sin(angle) * len;
         ctx.strokeStyle = 'rgba(255,107,107,0.4)';
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 6]);
         ctx.beginPath();
-        ctx.moveTo(h.x, h.y);
-        ctx.lineTo(h.x + Math.cos(angle) * len, h.y + Math.sin(angle) * len);
+        ctx.moveTo(G.hero.x, G.hero.y);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
         ctx.setLineDash([]);
     }
 
-    // Particles
-    for (const p of state.particles) {
+    // PARTICLES
+    for (const p of G.particles) {
         ctx.globalAlpha = p.life / p.maxLife;
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x - p.r/2, p.y - p.r/2, p.r, p.r);
     }
     ctx.globalAlpha = 1;
 
-    // Joysticks
-    if (state.leftJoystick.active) {
-        const jx = state.leftJoystick.startX;
-        const jy = state.leftJoystick.startY;
-        ctx.strokeStyle = 'rgba(76,175,80,0.3)';
+    // JOYSTICKS
+    if (G.leftJoystick.active) {
+        const jx = G.leftJoystick.startX;
+        const jy = G.leftJoystick.startY;
+        ctx.strokeStyle = 'rgba(76,175,80,0.25)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(jx, jy, 45, 0, 2 * Math.PI);
         ctx.stroke();
-        ctx.fillStyle = 'rgba(76,175,80,0.2)';
+        ctx.fillStyle = 'rgba(76,175,80,0.15)';
         ctx.beginPath();
-        ctx.arc(jx + state.leftJoystick.dx, jy + state.leftJoystick.dy, 18, 0, 2 * Math.PI);
+        ctx.arc(jx + G.leftJoystick.dx, jy + G.leftJoystick.dy, 18, 0, 2 * Math.PI);
         ctx.fill();
     }
-    if (state.rightJoystick.active) {
-        const jx = state.rightJoystick.startX;
-        const jy = state.rightJoystick.startY;
-        ctx.strokeStyle = 'rgba(255,107,107,0.3)';
+    if (G.rightJoystick.active) {
+        const jx = G.rightJoystick.startX;
+        const jy = G.rightJoystick.startY;
+        ctx.strokeStyle = 'rgba(255,107,107,0.25)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(jx, jy, 45, 0, 2 * Math.PI);
         ctx.stroke();
-        ctx.fillStyle = 'rgba(255,107,107,0.2)';
+        ctx.fillStyle = 'rgba(255,107,107,0.15)';
         ctx.beginPath();
-        ctx.arc(jx + state.rightJoystick.dx, jy + state.rightJoystick.dy, 18, 0, 2 * Math.PI);
+        ctx.arc(jx + G.rightJoystick.dx, jy + G.rightJoystick.dy, 18, 0, 2 * Math.PI);
         ctx.fill();
     }
 }
 
-// ============================================================
-// 10. RESTART
-// ============================================================
-document.getElementById('restart-btn').addEventListener('click', () => {
-    state.gameOver = false;
-    state.kills = 0;
-    state.deaths = 0;
-    state.hook = null;
-    state.particles = [];
-    state.hero.x = W/2;
-    state.hero.y = H/2;
-    state.heroHookCooldown = 0;
-    document.getElementById('game-over').classList.remove('active');
+// ================================================================
+// RESTART
+// ================================================================
+restartBtn.addEventListener('click', () => {
+    G.gameOver = false;
+    G.kills = 0;
+    G.deaths = 0;
+    G.hook = null;
+    G.particles = [];
+    G.hero.x = W/2;
+    G.hero.y = H/2;
+    G.heroHookCooldown = 0;
+    gameOverEl.classList.remove('active');
     updateUI();
     createBots();
 });
 
-// ============================================================
-// 11. START
-// ============================================================
+// ================================================================
+// START
+// ================================================================
 createBots();
 updateUI();
 
@@ -679,6 +729,10 @@ function loop() {
     requestAnimationFrame(loop);
 }
 loop();
+
+console.log('🎮 Pudge Wars — с оригинальными пуджами!');
+console.log('🟢 Зелёные пуджи с красными глазами — как в Dota 2');
+console.log('🕹️ Левым джойстиком ходишь, правым — кидаешь крюк');
 </script>
 </body>
 </html>
