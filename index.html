@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pudge Wars</title>
+    <title>Pudge Wars — Mobile</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -21,8 +21,8 @@
             max-width: 480px;
             height: 100vh;
             max-height: 900px;
-            background: #1a2a1a;
-            border: 2px solid #2a4a2a;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -34,8 +34,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 6px 12px;
-            background: #0d1a0d;
-            border-bottom: 2px solid #2a4a2a;
+            background: #0d0d0d;
+            border-bottom: 2px solid #2a2a2a;
             color: #00ff41;
             font-size: 12px;
             min-height: 36px;
@@ -44,7 +44,7 @@
         .score-dota {
             display: flex;
             gap: 8px;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
         }
         .score-dota .kills { color: #00ff41; }
@@ -52,7 +52,7 @@
         .score-dota .sep { color: #444; }
         #game-field {
             flex: 1;
-            background: #1a2a1a;
+            background: #0d0d0d;
             position: relative;
             overflow: hidden;
             touch-action: none;
@@ -69,61 +69,14 @@
             display: flex;
             justify-content: space-between;
             padding: 3px 12px;
-            background: #0d1a0d;
-            border-top: 2px solid #2a4a2a;
+            background: #0d0d0d;
+            border-top: 2px solid #2a2a2a;
             color: #00ff41;
             font-size: 10px;
             image-rendering: pixelated;
         }
         #status-bar .hp { color: #ff1a1a; }
         #status-bar .energy { color: #00ff41; }
-        #bottom-panel {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 6px 4px;
-            background: #0d1a0d;
-            border-top: 2px solid #2a4a2a;
-            min-height: 70px;
-            gap: 4px;
-            image-rendering: pixelated;
-        }
-        .skill-btn {
-            background: #0d1a0d;
-            border: 2px solid #2a4a2a;
-            border-radius: 8px;
-            color: #888;
-            font-size: 8px;
-            font-family: 'Courier New', monospace;
-            padding: 4px 6px;
-            text-align: center;
-            cursor: pointer;
-            flex: 1;
-            max-width: 64px;
-            touch-action: manipulation;
-            min-height: 54px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            image-rendering: pixelated;
-            transition: all 0.1s ease;
-        }
-        .skill-btn .icon { font-size: 20px; display: block; }
-        .skill-btn .key { font-size: 7px; color: #00ff41; letter-spacing: 1px; }
-        .skill-btn .cd { font-size: 7px; color: #666; margin-top: 2px; }
-        .skill-btn:active { transform: scale(0.92); border-color: #00ff41; background: #1a2a1a; }
-        .skill-btn.hook .key { color: #ff6b6b; }
-        .skill-btn.shift .key { color: #00b894; }
-        .skill-btn.blink .key { color: #6c5ce7; }
-        .skill-btn.passive .key { color: #ffd93d; }
-        @media (max-width: 400px) {
-            .skill-btn { padding: 3px 4px; min-height: 46px; max-width: 54px; }
-            .skill-btn .icon { font-size: 16px; }
-            .skill-btn .key { font-size: 6px; }
-            #top-panel { font-size: 10px; padding: 4px 8px; }
-            #bottom-panel { min-height: 56px; }
-        }
         /* ===== МОДАЛЬНОЕ ОКНО ===== */
         #modal-overlay {
             position: absolute;
@@ -137,8 +90,8 @@
         }
         #modal-overlay.active { display: flex; }
         #modal-box {
-            background: #0d1a0d;
-            border: 3px solid #2a4a2a;
+            background: #0d0d0d;
+            border: 3px solid #2a2a2a;
             padding: 30px 20px 20px;
             text-align: center;
             max-width: 320px;
@@ -158,7 +111,7 @@
             margin-bottom: 20px;
         }
         #modal-box .btn-ok {
-            background: #0d1a0d;
+            background: #0d0d0d;
             border: 2px solid #00ff41;
             color: #00ff41;
             padding: 10px 40px;
@@ -171,7 +124,7 @@
         }
         #modal-box .btn-ok:hover {
             background: #00ff41;
-            color: #0d1a0d;
+            color: #0d0d0d;
         }
         #modal-box .btn-ok:active { transform: scale(0.95); }
     </style>
@@ -188,7 +141,6 @@
         </div>
         <div id="game-field">
             <canvas id="gameCanvas"></canvas>
-            <!-- МОДАЛЬНОЕ ОКНО -->
             <div id="modal-overlay">
                 <div id="modal-box">
                     <h2>💀 ТЫ УМЕР</h2>
@@ -201,28 +153,6 @@
             <span class="hp">❤️ HP: <span id="hpDisplay">100</span></span>
             <span class="energy">⚡ Energy: <span id="energyDisplay">100</span></span>
             <span>🏆 <span id="recordDisplay">0</span></span>
-        </div>
-        <div id="bottom-panel">
-            <button class="skill-btn hook" data-skill="hook">
-                <span class="icon">🪝</span>
-                <span class="key">ХУК</span>
-                <span class="cd" id="hookCd">3.5s</span>
-            </button>
-            <button class="skill-btn shift" data-skill="shift">
-                <span class="icon">👻</span>
-                <span class="key">ШИФТ</span>
-                <span class="cd" id="shiftCd">4.5s</span>
-            </button>
-            <button class="skill-btn blink" data-skill="blink">
-                <span class="icon">⚡</span>
-                <span class="key">БЛИНК</span>
-                <span class="cd" id="blinkCd">3.0s</span>
-            </button>
-            <button class="skill-btn passive" data-skill="passive">
-                <span class="icon">🛡️</span>
-                <span class="key">ПАССИВ</span>
-                <span class="cd" id="passiveCd">Готов</span>
-            </button>
         </div>
     </div>
     <script>
@@ -252,7 +182,7 @@
         maxHp: 100,
         energy: 100,
         maxEnergy: 100,
-        hero: { x: 0, y: 0, radius: 16 },
+        hero: { x: 0, y: 0, radius: 18 },
         bots: [],
         particles: [],
         hook: null,
@@ -260,48 +190,13 @@
         gameOver: false,
         leftJoystick: { active: false, dx: 0, dy: 0, touchId: null, startX: 0, startY: 0 },
         rightJoystick: { active: false, dx: 0, dy: 0, touchId: null, startX: 0, startY: 0 },
-        invisible: false,
-        invisTimer: 0,
         spawnTimer: 0,
         maxBots: 3
     };
     document.getElementById('recordDisplay').textContent = game.record;
 
-    const cooldowns = { hook: 0, shift: 0, blink: 0, passive: 0 };
-    const maxCooldowns = { hook: 3.5 * 60, shift: 4.5 * 60, blink: 3 * 60, passive: 0 };
-
     // ============================================================
-    // 3. СОЗДАНИЕ БОТОВ (3 штуки для баланса)
-    // ============================================================
-    function createBots() {
-        game.bots = [];
-        const botColors = ['#8B0000', '#006400', '#4a0080'];
-        const positions = [
-            { x: 80, y: 80 },
-            { x: canvas.width - 80, y: 80 },
-            { x: 80, y: canvas.height - 80 }
-        ];
-        for (let i = 0; i < 3; i++) {
-            game.bots.push({
-                x: positions[i].x,
-                y: positions[i].y,
-                radius: 16,
-                color: botColors[i],
-                alive: true,
-                hookCooldown: 0,
-                maxHookCooldown: 70 + Math.random() * 40,
-                moveTimer: 0,
-                aimAngle: 0,
-                hook: null,
-                respawnTimer: 0,
-                targetX: positions[i].x,
-                targetY: positions[i].y
-            });
-        }
-    }
-
-    // ============================================================
-    // 4. ДЖОЙСТИКИ
+    // 3. ДЖОЙСТИКИ
     // ============================================================
     function handleTouchStart(e) {
         e.preventDefault();
@@ -394,95 +289,16 @@
     canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
     canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-    // Мышь для ПК
-    let mouseDown = false;
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        if (x < canvas.width / 2) {
-            game.leftJoystick.active = true;
-            game.leftJoystick.startX = x;
-            game.leftJoystick.startY = y;
-        } else {
-            game.rightJoystick.active = true;
-            game.rightJoystick.startX = x;
-            game.rightJoystick.startY = y;
-        }
-        mouseDown = true;
-    });
-    canvas.addEventListener('mousemove', (e) => {
-        if (!mouseDown) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        if (game.leftJoystick.active) {
-            const dx = x - game.leftJoystick.startX;
-            const dy = y - game.leftJoystick.startY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 5) {
-                const angle = Math.atan2(dy, dx);
-                const speed = 2.5;
-                const moveDist = Math.min(dist / 20, 1) * speed;
-                game.hero.x += Math.cos(angle) * moveDist;
-                game.hero.y += Math.sin(angle) * moveDist;
-                const margin = 30;
-                game.hero.x = Math.max(margin, Math.min(canvas.width - margin, game.hero.x));
-                game.hero.y = Math.max(margin, Math.min(canvas.height - margin, game.hero.y));
-            }
-            const maxDist = 50;
-            if (dist > maxDist) {
-                game.leftJoystick.dx = (dx / dist) * maxDist;
-                game.leftJoystick.dy = (dy / dist) * maxDist;
-            } else {
-                game.leftJoystick.dx = dx;
-                game.leftJoystick.dy = dy;
-            }
-        }
-        if (game.rightJoystick.active) {
-            const dx = x - game.rightJoystick.startX;
-            const dy = y - game.rightJoystick.startY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 5) game.aimAngle = Math.atan2(dy, dx);
-            const maxDist = 60;
-            if (dist > maxDist) {
-                game.rightJoystick.dx = (dx / dist) * maxDist;
-                game.rightJoystick.dy = (dy / dist) * maxDist;
-            } else {
-                game.rightJoystick.dx = dx;
-                game.rightJoystick.dy = dy;
-            }
-        }
-    });
-    canvas.addEventListener('mouseup', () => {
-        const dist = Math.sqrt(game.rightJoystick.dx*game.rightJoystick.dx + game.rightJoystick.dy*game.rightJoystick.dy);
-        if (dist > 20) useHook(game.aimAngle);
-        game.leftJoystick.active = false;
-        game.leftJoystick.dx = 0;
-        game.rightJoystick.active = false;
-        game.rightJoystick.dx = 0;
-        mouseDown = false;
-    });
-    canvas.addEventListener('mouseleave', () => {
-        game.leftJoystick.active = false;
-        game.leftJoystick.dx = 0;
-        game.rightJoystick.active = false;
-        game.rightJoystick.dx = 0;
-        mouseDown = false;
-    });
-
     // ============================================================
-    // 5. СКИЛЛЫ
+    // 4. ФУНКЦИИ ИГРЫ
     // ============================================================
     function useHook(angle) {
-        if (cooldowns.hook > 0 || game.gameOver) return;
-        cooldowns.hook = maxCooldowns.hook;
-        updateHookUI();
+        if (game.hook || game.gameOver) return;
         const startX = game.hero.x, startY = game.hero.y;
-        const length = 280;
+        const length = 300;
         const endX = startX + Math.cos(angle) * length;
         const endY = startY + Math.sin(angle) * length;
-        game.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 25 };
+        game.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 20 };
 
         for (const bot of game.bots) {
             if (!bot.alive) continue;
@@ -500,98 +316,6 @@
         }
     }
 
-    function useShift() {
-        if (cooldowns.shift > 0 || game.gameOver) return;
-        cooldowns.shift = maxCooldowns.shift;
-        updateShiftUI();
-        game.invisible = true;
-        game.invisTimer = 90;
-        spawnParticles(game.hero.x, game.hero.y, '#00b894', 20);
-        setTimeout(() => {
-            game.invisible = false;
-            spawnParticles(game.hero.x, game.hero.y, '#00b894', 15);
-        }, 1500);
-    }
-
-    function useBlink() {
-        if (cooldowns.blink > 0 || game.gameOver) return;
-        cooldowns.blink = maxCooldowns.blink;
-        updateBlinkUI();
-        const angle = game.aimAngle || 0;
-        const dist = 100;
-        const newX = game.hero.x + Math.cos(angle) * dist;
-        const newY = game.hero.y + Math.sin(angle) * dist;
-        const margin = 30;
-        game.hero.x = Math.max(margin, Math.min(canvas.width - margin, newX));
-        game.hero.y = Math.max(margin, Math.min(canvas.height - margin, newY));
-        spawnParticles(game.hero.x, game.hero.y, '#6c5ce7', 25);
-    }
-
-    function usePassive() {
-        if (game.gameOver) return;
-        game.hp = Math.min(game.maxHp, game.hp + 25);
-        game.energy = Math.min(game.maxEnergy, game.energy + 30);
-        updateHP();
-        updateEnergy();
-        spawnParticles(game.hero.x, game.hero.y, '#ffd93d', 15);
-        document.getElementById('passiveCd').textContent = '✅ Исп.';
-        setTimeout(() => document.getElementById('passiveCd').textContent = 'Готов', 2000);
-    }
-
-    // ============================================================
-    // 6. UI ОБНОВЛЕНИЯ
-    // ============================================================
-    function updateScore() {
-        document.getElementById('killsDisplay').textContent = game.kills;
-        if (game.kills > game.record) {
-            game.record = game.kills;
-            localStorage.setItem('pudgeRecord', game.record);
-            document.getElementById('recordDisplay').textContent = game.record;
-        }
-    }
-
-    function updateDeaths() {
-        document.getElementById('deathsDisplay').textContent = game.deaths;
-    }
-
-    function updateHP() {
-        document.getElementById('hpDisplay').textContent = Math.round(game.hp);
-    }
-
-    function updateEnergy() {
-        document.getElementById('energyDisplay').textContent = Math.round(game.energy);
-    }
-
-    function updateHookUI() {
-        const sec = (cooldowns.hook / 60).toFixed(1);
-        document.getElementById('hookCd').textContent = sec + 's';
-        document.getElementById('hookCd').style.color = '#ff1a1a';
-    }
-
-    function updateShiftUI() {
-        const sec = (cooldowns.shift / 60).toFixed(1);
-        document.getElementById('shiftCd').textContent = sec + 's';
-        document.getElementById('shiftCd').style.color = '#ff1a1a';
-    }
-
-    function updateBlinkUI() {
-        const sec = (cooldowns.blink / 60).toFixed(1);
-        document.getElementById('blinkCd').textContent = sec + 's';
-        document.getElementById('blinkCd').style.color = '#ff1a1a';
-    }
-
-    function showModal(text) {
-        document.getElementById('modal-text').textContent = text;
-        document.getElementById('modal-overlay').classList.add('active');
-    }
-
-    function hideModal() {
-        document.getElementById('modal-overlay').classList.remove('active');
-    }
-
-    // ============================================================
-    // 7. ВСПОМОГАТЕЛЬНЫЕ
-    // ============================================================
     function distanceToSegment(px, py, x1, y1, x2, y2) {
         const dx = x2 - x1, dy = y2 - y1;
         const lenSq = dx*dx + dy*dy;
@@ -619,8 +343,35 @@
     }
 
     // ============================================================
-    // 8. БОТЫ (AI)
+    // 5. БОТЫ
     // ============================================================
+    function createBots() {
+        game.bots = [];
+        const botColors = ['#8B0000', '#006400', '#4a0080'];
+        const positions = [
+            { x: 80, y: 80 },
+            { x: canvas.width - 80, y: 80 },
+            { x: 80, y: canvas.height - 80 }
+        ];
+        for (let i = 0; i < 3; i++) {
+            game.bots.push({
+                x: positions[i].x,
+                y: positions[i].y,
+                radius: 18,
+                color: botColors[i],
+                alive: true,
+                hookCooldown: 0,
+                maxHookCooldown: 60 + Math.random() * 40,
+                moveTimer: 0,
+                aimAngle: 0,
+                hook: null,
+                respawnTimer: 0,
+                targetX: positions[i].x,
+                targetY: positions[i].y
+            });
+        }
+    }
+
     function updateBots() {
         for (const bot of game.bots) {
             if (!bot.alive) {
@@ -634,21 +385,8 @@
                 continue;
             }
 
-            let targetX = game.hero.x;
-            let targetY = game.hero.y;
-            if (game.invisible) {
-                bot.moveTimer--;
-                if (bot.moveTimer <= 0) {
-                    bot.moveTimer = 60 + Math.random() * 60;
-                    bot.targetX = 50 + Math.random() * (canvas.width - 100);
-                    bot.targetY = 50 + Math.random() * (canvas.height - 100);
-                }
-                targetX = bot.targetX || game.hero.x;
-                targetY = bot.targetY || game.hero.y;
-            }
-
-            const dx = targetX - bot.x;
-            const dy = targetY - bot.y;
+            const dx = game.hero.x - bot.x;
+            const dy = game.hero.y - bot.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             if (dist > 80) {
@@ -664,7 +402,7 @@
             bot.aimAngle = Math.atan2(dy, dx);
             bot.hookCooldown--;
             
-            if (bot.hookCooldown <= 0 && dist < 300 && dist > 30 && !game.invisible) {
+            if (bot.hookCooldown <= 0 && dist < 300 && dist > 30) {
                 bot.hookCooldown = bot.maxHookCooldown;
                 const startX = bot.x, startY = bot.y;
                 const length = 260;
@@ -696,27 +434,47 @@
     }
 
     // ============================================================
-    // 9. РЕСТАРТ
+    // 6. UI
     // ============================================================
+    function updateScore() {
+        document.getElementById('killsDisplay').textContent = game.kills;
+        if (game.kills > game.record) {
+            game.record = game.kills;
+            localStorage.setItem('pudgeRecord', game.record);
+            document.getElementById('recordDisplay').textContent = game.record;
+        }
+    }
+
+    function updateDeaths() {
+        document.getElementById('deathsDisplay').textContent = game.deaths;
+    }
+
+    function updateHP() {
+        document.getElementById('hpDisplay').textContent = Math.round(game.hp);
+    }
+
+    function updateEnergy() {
+        document.getElementById('energyDisplay').textContent = Math.round(game.energy);
+    }
+
+    function showModal(text) {
+        document.getElementById('modal-text').textContent = text;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function hideModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
+
     function resetGame() {
         game.hp = game.maxHp;
         game.kills = 0;
         game.deaths = 0;
         game.gameOver = false;
-        game.invisible = false;
-        game.invisTimer = 0;
         game.particles = [];
         game.hook = null;
         game.hero.x = canvas.width / 2;
         game.hero.y = canvas.height / 2;
-        for (const key in cooldowns) cooldowns[key] = 0;
-        document.getElementById('hookCd').textContent = '3.5s';
-        document.getElementById('hookCd').style.color = '';
-        document.getElementById('shiftCd').textContent = '4.5s';
-        document.getElementById('shiftCd').style.color = '';
-        document.getElementById('blinkCd').textContent = '3.0s';
-        document.getElementById('blinkCd').style.color = '';
-        document.getElementById('passiveCd').textContent = 'Готов';
         updateHP();
         updateScore();
         updateDeaths();
@@ -727,40 +485,12 @@
     }
 
     // ============================================================
-    // 10. ИГРОВОЙ ЦИКЛ
+    // 7. ИГРОВОЙ ЦИКЛ
     // ============================================================
     function update() {
-        // Обновление кд
-        for (const key in cooldowns) {
-            if (cooldowns[key] > 0) {
-                cooldowns[key]--;
-                if (key === 'hook' && cooldowns.hook > 0) {
-                    const sec = (cooldowns.hook / 60).toFixed(1);
-                    document.getElementById('hookCd').textContent = sec + 's';
-                    document.getElementById('hookCd').style.color = '#ff1a1a';
-                }
-                if (key === 'shift' && cooldowns.shift > 0) {
-                    const sec = (cooldowns.shift / 60).toFixed(1);
-                    document.getElementById('shiftCd').textContent = sec + 's';
-                    document.getElementById('shiftCd').style.color = '#ff1a1a';
-                }
-                if (key === 'blink' && cooldowns.blink > 0) {
-                    const sec = (cooldowns.blink / 60).toFixed(1);
-                    document.getElementById('blinkCd').textContent = sec + 's';
-                    document.getElementById('blinkCd').style.color = '#ff1a1a';
-                }
-                if (cooldowns[key] === 0) {
-                    if (key === 'hook') { document.getElementById('hookCd').textContent = 'Готов'; document.getElementById('hookCd').style.color = ''; }
-                    if (key === 'shift') { document.getElementById('shiftCd').textContent = 'Готов'; document.getElementById('shiftCd').style.color = ''; }
-                    if (key === 'blink') { document.getElementById('blinkCd').textContent = 'Готов'; document.getElementById('blinkCd').style.color = ''; }
-                }
-            }
-        }
-
         if (!game.gameOver) {
             updateBots();
 
-            // Спавн ботов
             game.spawnTimer++;
             const aliveBots = game.bots.filter(b => b.alive).length;
             if (game.spawnTimer > 120 && aliveBots < game.maxBots) {
@@ -776,7 +506,6 @@
                 }
             }
 
-            // Частицы
             for (let i = game.particles.length - 1; i >= 0; i--) {
                 const p = game.particles[i];
                 p.x += p.vx;
@@ -792,7 +521,6 @@
                 updateHP();
             }
 
-            // Крюк игрока
             if (game.hook) {
                 game.hook.life--;
                 if (game.hook.life <= 0) game.hook = null;
@@ -801,18 +529,17 @@
     }
 
     // ============================================================
-    // 11. ОТРИСОВКА
+    // 8. ОТРИСОВКА
     // ============================================================
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 🟩 ЗЕЛЁНАЯ КАРТА (КАК НА ФОТО)
-        // Трава
-        ctx.fillStyle = '#1a2a1a';
+        // Фон
+        ctx.fillStyle = '#1a1a1a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Сетка (линии травы)
-        ctx.strokeStyle = 'rgba(40, 60, 40, 0.5)';
+        // Сетка
+        ctx.strokeStyle = 'rgba(40, 40, 40, 0.5)';
         ctx.lineWidth = 1;
         for (let x = 0; x < canvas.width; x += 40) {
             ctx.beginPath();
@@ -827,13 +554,12 @@
             ctx.stroke();
         }
 
-        // Рисуем ботов (Пуджи)
+        // Боты
         for (const bot of game.bots) {
             if (!bot.alive) continue;
             const r = bot.radius;
-            // Тело
-            drawPixelCircle(bot.x, bot.y, r, bot.color);
-            drawPixelCircle(bot.x, bot.y, r-4, '#4CAF50');
+            drawCircle(bot.x, bot.y, r, bot.color);
+            drawCircle(bot.x, bot.y, r-4, '#4CAF50');
             // Глаза
             ctx.fillStyle = 'white';
             ctx.fillRect(bot.x - 6, bot.y - 6, 4, 4);
@@ -841,71 +567,45 @@
             ctx.fillStyle = 'black';
             ctx.fillRect(bot.x - 4, bot.y - 5, 2, 2);
             ctx.fillRect(bot.x + 4, bot.y - 5, 2, 2);
-            // Рот
-            ctx.fillStyle = 'black';
-            ctx.fillRect(bot.x - 4, bot.y + 4, 8, 2);
-            // Крюк бота
             if (bot.hook) {
-                drawPixelLine(bot.hook.x1, bot.hook.y1, bot.hook.x2, bot.hook.y2, '#ff6b6b');
-                drawPixelCircle(bot.hook.x2, bot.hook.y2, 6, '#ff6b6b');
+                drawLine(bot.hook.x1, bot.hook.y1, bot.hook.x2, bot.hook.y2, '#ff6b6b');
+                drawCircle(bot.hook.x2, bot.hook.y2, 6, '#ff6b6b');
             }
-            // Имя бота
-            ctx.fillStyle = 'rgba(0,255,65,0.5)';
-            ctx.font = '8px monospace';
-            ctx.fillText('Pudge', bot.x - 14, bot.y - r - 6);
         }
 
         // Крюк игрока
         if (game.hook) {
-            drawPixelLine(game.hook.x1, game.hook.y1, game.hook.x2, game.hook.y2, '#ff6b6b');
-            drawPixelCircle(game.hook.x2, game.hook.y2, 8, '#ff6b6b');
+            drawLine(game.hook.x1, game.hook.y1, game.hook.x2, game.hook.y2, '#ff6b6b');
+            drawCircle(game.hook.x2, game.hook.y2, 8, '#ff6b6b');
         }
 
-        // Герой (Пудж игрока)
-        if (!game.invisible || game.hook) {
-            const h = game.hero;
-            const r = 16;
-            // Тело
-            drawPixelCircle(h.x, h.y, r, '#006400');
-            drawPixelCircle(h.x, h.y, r-4, '#4CAF50');
-            // Глаза
-            ctx.fillStyle = 'white';
-            ctx.fillRect(h.x - 6, h.y - 6, 4, 4);
-            ctx.fillRect(h.x + 2, h.y - 6, 4, 4);
-            ctx.fillStyle = 'black';
-            ctx.fillRect(h.x - 4, h.y - 5, 2, 2);
-            ctx.fillRect(h.x + 4, h.y - 5, 2, 2);
-            // Рот
-            ctx.fillStyle = 'black';
-            ctx.fillRect(h.x - 4, h.y + 4, 8, 2);
-            // Крюк (оружие)
-            ctx.fillStyle = '#8B0000';
-            ctx.fillRect(h.x + r, h.y - 2, 10, 4);
-            ctx.fillRect(h.x + r + 4, h.y - 6, 4, 12);
-            ctx.fillStyle = '#ff6b6b';
-            ctx.fillRect(h.x + r + 2, h.y - 1, 4, 2);
-        } else {
-            ctx.globalAlpha = 0.3;
-            const h = game.hero;
-            drawPixelCircle(h.x, h.y, 16, '#00b894');
-            ctx.globalAlpha = 1;
-        }
+        // Герой
+        const h = game.hero;
+        const r = 18;
+        drawCircle(h.x, h.y, r, '#006400');
+        drawCircle(h.x, h.y, r-4, '#4CAF50');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(h.x - 6, h.y - 6, 4, 4);
+        ctx.fillRect(h.x + 2, h.y - 6, 4, 4);
+        ctx.fillStyle = 'black';
+        ctx.fillRect(h.x - 4, h.y - 5, 2, 2);
+        ctx.fillRect(h.x + 4, h.y - 5, 2, 2);
 
         // Прицел
         if (game.rightJoystick.active && game.rightJoystick.dx !== 0) {
             const angle = game.aimAngle;
             const len = 50;
-            const endX = game.hero.x + Math.cos(angle) * len;
-            const endY = game.hero.y + Math.sin(angle) * len;
+            const endX = h.x + Math.cos(angle) * len;
+            const endY = h.y + Math.sin(angle) * len;
             ctx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
             ctx.lineWidth = 2;
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
-            ctx.moveTo(game.hero.x, game.hero.y);
+            ctx.moveTo(h.x, h.y);
             ctx.lineTo(endX, endY);
             ctx.stroke();
             ctx.setLineDash([]);
-            drawPixelCircle(endX, endY, 6, 'rgba(255, 107, 107, 0.3)');
+            drawCircle(endX, endY, 6, 'rgba(255, 107, 107, 0.3)');
         }
 
         // Частицы
@@ -916,7 +616,7 @@
             ctx.globalAlpha = 1;
         }
 
-        // Джойстики (полупрозрачные круги)
+        // Джойстики
         if (game.leftJoystick.active) {
             const jx = game.leftJoystick.startX;
             const jy = game.leftJoystick.startY;
@@ -946,9 +646,9 @@
     }
 
     // ============================================================
-    // 12. ПИКСЕЛЬНЫЕ ФУНКЦИИ
+    // 9. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
     // ============================================================
-    function drawPixelCircle(cx, cy, r, color) {
+    function drawCircle(cx, cy, r, color) {
         const startX = Math.floor(cx - r), startY = Math.floor(cy - r);
         const endX = Math.floor(cx + r), endY = Math.floor(cy + r);
         ctx.fillStyle = color;
@@ -960,7 +660,7 @@
         }
     }
 
-    function drawPixelLine(x1, y1, x2, y2, color) {
+    function drawLine(x1, y1, x2, y2, color) {
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -970,24 +670,11 @@
     }
 
     // ============================================================
-    // 13. ЗАПУСК
+    // 10. ЗАПУСК
     // ============================================================
     game.hero.x = canvas.width / 2;
     game.hero.y = canvas.height / 2;
     createBots();
-
-    document.querySelectorAll('.skill-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const skill = this.dataset.skill;
-            switch(skill) {
-                case 'hook': useHook(game.aimAngle); break;
-                case 'shift': useShift(); break;
-                case 'blink': useBlink(); break;
-                case 'passive': usePassive(); break;
-            }
-        });
-    });
 
     document.getElementById('btnOk').addEventListener('click', resetGame);
 
@@ -998,9 +685,9 @@
     }
     gameLoop();
 
-    console.log('🎮 Pudge Wars — Зелёная карта!');
-    console.log('🪝 Хук: 3.5s | 👻 Шифт: 4.5s | ⚡ Блинк: 3.0s');
-    console.log('🟩 3 врага, балансный режим!');
+    console.log('🎮 Pudge Wars — Mobile Edition');
+    console.log('🕹️ Левый джойстик — движение, правый — прицел');
+    console.log('🪝 Свайп правым джойстиком — бросок крюка');
     </script>
 </body>
 </html>
