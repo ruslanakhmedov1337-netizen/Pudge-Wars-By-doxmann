@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Pudge Wars Mobile 1:1 Fullscreen</title>
+    <title>Pudge Wars Mobile Original 1:1</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: monospace; user-select: none; touch-action: none; }
         
-        /* Игровое поле на весь экран смартфона */
+        /* Игровое поле занимает весь экран устройства */
         canvas { display: block; width: 100vw; height: 100vh; background: #1a3814; }
         
-        /* Зоны для удобных тач-джойстиков под большие пальцы */
-        .joy-zone { position: absolute; bottom: 25px; width: 110px; height: 110px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; }
+        /* Тач-джойстики под большие пальцы */
+        .joy-zone { position: absolute; bottom: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; }
         #left-joy { left: 40px; }
         #right-joy { right: 40px; }
-        .stick { width: 40px; height: 40px; background: rgba(255,255,255,0.3); border-radius: 50%; transition: transform 0.03s linear; }
+        .stick { width: 36px; height: 36px; background: rgba(255,255,255,0.25); border-radius: 50%; }
 
-        /* Панель способностей рядом с правым джойстиком для быстрых комбо */
-        #skills-panel { position: absolute; bottom: 155px; right: 45px; display: flex; gap: 12px; z-index: 10; }
-        .skill-wrapper { position: relative; width: 48px; height: 48px; }
-        .skill { width: 100%; height: 100%; border: 2px solid #444; border-radius: 6px; background-size: cover; background-position: center; background-color: #111; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
+        /* Панель оригинальных способностей */
+        #skills-panel { position: absolute; bottom: 145px; right: 40px; display: flex; gap: 10px; z-index: 10; }
+        .skill-wrapper { position: relative; width: 44px; height: 44px; }
+        .skill { width: 100%; height: 100%; border: 1.5px solid #444; border-radius: 4px; background-size: cover; background-position: center; background-color: #111; box-shadow: 0 3px 8px rgba(0,0,0,0.6); }
         
-        /* Привязка картинок, которые ты загрузишь на GitHub */
-        #skill-q { background-image: url('hook_icon.png'); }   /* Твое фото Хука */
-        #skill-w { background-image: url('shift_icon.png'); }  /* Твое фото Шифта */
-        #skill-e { background-image: url('blink_icon.png'); }  /* Твое фото Блинка */
+        /* Загрузка картинок способностей по твоим файлам */
+        #skill-q { background-image: url('hook_icon.png'); }
+        #skill-w { background-image: url('shift_icon.png'); }
+        #skill-e { background-image: url('blink_icon.png'); }
         
-        .cooldown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border-radius: 4px; display: none; }
-        .hotkey { position: absolute; bottom: 2px; right: 4px; color: #ffcc00; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+        .cooldown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border-radius: 3px; display: none; }
+        .hotkey { position: absolute; bottom: 1px; right: 3px; color: #ffcc00; font-size: 9px; font-weight: bold; text-shadow: 1px 1px 1px #000; }
     </style>
 </head>
 <body>
@@ -54,11 +54,15 @@
     </div>
 
     <div class="joy-zone" id="left-joy"><div class="stick" id="left-stick"></div></div>
-    <div class="joy-zone" id="right-joy"><div class="stick" id="right-stick" style="background: rgba(235,196,47,0.3);"></div></div>
+    <div class="joy-zone" id="right-joy"><div class="stick" id="right-stick" style="background: rgba(235,196,47,0.25);"></div></div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+
+        // Загрузка спрайта оригинального Пуджа, которого ты скинул
+        const pudgeSprite = new Image();
+        pudgeSprite.src = 'pudge_sprite.png';
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -67,22 +71,26 @@
         window.addEventListener('resize', resize);
         resize();
 
+        // Позиционирование объектов с учетом масштаба экрана
         let state = {
             score: 0, record: 0,
-            pudge: { x: window.innerWidth / 2, y: window.innerHeight - 120, radius: 25, speed: 4.8, isPhaseShift: false, phaseShiftTimer: 0, lastDir: { x: 0, y: -1 } },
+            pudge: { x: window.innerWidth / 2, y: window.innerHeight * 0.78, radius: 22, speed: 4.5, isPhaseShift: false, phaseShiftTimer: 0, lastDir: { x: 0, y: -1 } },
             enemies: [],
-            hook: { x: 0, y: 0, vx: 0, vy: 0, active: false, startX: 0, startY: 0, maxLen: window.innerHeight * 0.6, returning: false },
-            cooldowns: { q: { current: 0, max: 3 }, w: { current: 0, max: 6 }, e: { current: 0, max: 8 } }
+            hook: { x: 0, y: 0, vx: 0, vy: 0, active: false, startX: 0, startY: 0, maxLen: window.innerHeight * 0.55, returning: false },
+            aim: { active: false, dx: 0, dy: 0 }, // Логика линии прицеливания
+            cooldowns: { q: { current: 0, max: 3 }, w: { current: 0, max: 5 }, e: { current: 0, max: 7 } }
         };
 
         function initEnemies() {
             state.enemies = [];
+            let sector = canvas.width / 3;
             for(let i = 0; i < 3; i++) {
                 state.enemies.push({
-                    x: 100 + i * (canvas.width / 3),
-                    y: 70 + Math.random() * 60,
-                    radius: 25,
-                    vx: (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 1.5)
+                    x: sector * i + sector / 2,
+                    y: canvas.height * 0.15 + Math.random() * 40,
+                    radius: 22,
+                    vx: (Math.random() > 0.5 ? 1 : -1) * (1.8 + Math.random() * 1.2),
+                    angle: Math.PI // Смотрят вниз на реку
                 });
             }
         }
@@ -99,13 +107,21 @@
         });
 
         setupJoystick("right-joy", "right-stick", (dx, dy, isRelease) => {
-            if (isRelease && !state.hook.active && state.cooldowns.q.current === 0) {
-                state.hook.active = true; state.hook.returning = false;
-                state.hook.x = state.pudge.x; state.hook.y = state.pudge.y;
-                state.hook.startX = state.pudge.x; state.hook.startY = state.pudge.y;
-                let angle = Math.atan2(dy, dx);
-                state.hook.vx = Math.cos(angle) * 16; state.hook.vy = Math.sin(angle) * 16;
-                startCooldown('q');
+            if (dx !== 0 || dy !== 0) {
+                state.aim.active = true;
+                state.aim.dx = dx;
+                state.aim.dy = dy;
+            }
+            if (isRelease) {
+                state.aim.active = false;
+                if (!state.hook.active && state.cooldowns.q.current === 0 && (dx !== 0 || dy !== 0)) {
+                    state.hook.active = true; state.hook.returning = false;
+                    state.hook.x = state.pudge.x; state.hook.y = state.pudge.y;
+                    state.hook.startX = state.pudge.x; state.hook.startY = state.pudge.y;
+                    let angle = Math.atan2(dy, dx);
+                    state.hook.vx = Math.cos(angle) * 15; state.hook.vy = Math.sin(angle) * 15;
+                    startCooldown('q');
+                }
             }
         });
 
@@ -115,14 +131,14 @@
         function usePhaseShift() {
             if (state.cooldowns.w.current > 0 || state.pudge.isPhaseShift) return;
             state.pudge.isPhaseShift = true;
-            state.pudge.phaseShiftTimer = 90; // 1.5 секунды неуязвимости
+            state.pudge.phaseShiftTimer = 75; 
             startCooldown('w');
         }
 
         function useBlink() {
             if (state.cooldowns.e.current > 0 || state.pudge.isPhaseShift) return;
-            state.pudge.x += state.pudge.lastDir.x * 160;
-            state.pudge.y += state.pudge.lastDir.y * 160;
+            state.pudge.x += state.pudge.lastDir.x * 140;
+            state.pudge.y += state.pudge.lastDir.y * 140;
             keepInBounds();
             startCooldown('e');
         }
@@ -140,11 +156,12 @@
         }
 
         function keepInBounds() {
-            let riverY = canvas.height / 2;
-            if(state.pudge.x < 30) state.pudge.x = 30;
-            if(state.pudge.x > canvas.width - 30) state.pudge.x = canvas.width - 30;
-            if(state.pudge.y < riverY + 45) state.pudge.y = riverY + 45;
-            if(state.pudge.y > canvas.height - 30) state.pudge.y = canvas.height - 30;
+            let riverTop = canvas.height * 0.44;
+            let riverBottom = canvas.height * 0.56;
+            if(state.pudge.x < 25) state.pudge.x = 25;
+            if(state.pudge.x > canvas.width - 25) state.pudge.x = canvas.width - 25;
+            if(state.pudge.y < riverBottom + 25) state.pudge.y = riverBottom + 25;
+            if(state.pudge.y > canvas.height - 25) state.pudge.y = canvas.height - 25;
         }
 
         function setupJoystick(containerId, stickId, callback) {
@@ -157,15 +174,15 @@
                 let t = e.touches[0]; let rect = container.getBoundingClientRect();
                 let dx = t.clientX - (rect.left + rect.width/2); let dy = t.clientY - (rect.top + rect.height/2);
                 let dist = Math.sqrt(dx*dx + dy*dy);
-                if(dist > 35) { dx = (dx/dist)*35; dy = (dy/dist)*35; }
+                if(dist > 30) { dx = (dx/dist)*30; dy = (dy/dist)*30; }
                 stick.style.transform = `translate(${dx}px, ${dy}px)`;
-                callback(dx/35, dy/35, false);
+                callback(dx/30, dy/30, false);
             });
             container.addEventListener("touchend", () => {
                 active = false; 
                 let m = new WebKitCSSMatrix(window.getComputedStyle(stick).transform);
                 stick.style.transform = "translate(0px, 0px)";
-                callback(m.m41 || 0, m.m42 || -1, true);
+                callback(m.m41 || 0, m.m42 || 0, true);
                 if(containerId === "left-joy") { moveVector.x = 0; moveVector.y = 0; }
             });
         }
@@ -182,7 +199,7 @@
 
             state.enemies.forEach(env => {
                 env.x += env.vx;
-                if(env.x < 30 || env.x > canvas.width - 30) env.vx *= -1;
+                if(env.x < 25 || env.x > canvas.width - 25) env.vx *= -1;
             });
 
             if (state.hook.active) {
@@ -193,7 +210,7 @@
 
                     state.enemies.forEach(env => {
                         let dist = Math.sqrt((state.hook.x - env.x)**2 + (state.hook.y - env.y)**2);
-                        if (dist < env.radius + 12) {
+                        if (dist < env.radius + 10) {
                             state.score++; if(state.score > state.record) state.record = state.score;
                             state.hook.returning = true; env.x = Math.random() * (canvas.width - 60) + 30;
                         }
@@ -201,64 +218,95 @@
                 } else {
                     let dx = state.pudge.x - state.hook.x; let dy = state.pudge.y - state.hook.y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < 22) state.hook.active = false;
-                    else { state.hook.x += (dx/dist) * 18; state.hook.y += (dy/dist) * 18; }
+                    if (dist < 20) state.hook.active = false;
+                    else { state.hook.x += (dx/dist) * 16; state.hook.y += (dy/dist) * 16; }
                 }
             }
+        }
+
+        function drawPudgeCharacter(ctx, x, y, radius, angle, isShift, isEnemy) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            
+            if (isShift) ctx.globalAlpha = 0.35;
+
+            // Если картинка-спрайт загружена — рисуем её, иначе детальную замену
+            if (pudgeSprite.complete && pudgeSprite.naturalWidth !== 0) {
+                ctx.drawImage(pudgeSprite, -radius, -radius, radius * 2, radius * 2);
+            } else {
+                // Высококачественная fallback геометрия (оригинальный вид)
+                ctx.fillStyle = isEnemy ? "#a64646" : "#a66846";
+                ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.fill();
+                // Фартук / Руки
+                ctx.fillStyle = "#3c1818"; ctx.fillRect(-radius/2, -radius/4, radius, radius/2);
+                ctx.fillStyle = "#5c3924"; ctx.fillRect(-4, -radius - 2, 8, 6); // Косичка
+            }
+            ctx.restore();
+            ctx.globalAlpha = 1.0;
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Поле боя из оригинала (Пиксельная трава)
-            ctx.fillStyle = "#264a1d"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#22431a"; ctx.lineWidth = 2;
-            for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            // Трава с текстурным заполнением
+            ctx.fillStyle = "#2c5421"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#274a1d"; ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
 
-            // Река по центру экрана
-            let riverY = canvas.height / 2;
-            ctx.fillStyle = "#172d42"; ctx.fillRect(0, riverY - 30, canvas.width, 60);
-            ctx.fillStyle = "#1c3752"; ctx.fillRect(0, riverY - 10, canvas.width, 20);
+            // Река, разделяющая поле в точных пропорциях оригинального сайта
+            let rTop = canvas.height * 0.44;
+            let rBottom = canvas.height * 0.56;
+            ctx.fillStyle = "#182e44"; ctx.fillRect(0, rTop, canvas.width, rBottom - rTop);
+            ctx.fillStyle = "#1c364f"; ctx.fillRect(0, rTop + 8, canvas.width, (rBottom - rTop) - 16);
 
-            // Текст очков
-            ctx.fillStyle = "#39eb52"; ctx.font = "bold 15px monospace"; ctx.fillText(`Score: ${state.score}`, 25, 35);
-            ctx.fillStyle = "#ebc42f"; ctx.fillText(`Record: ${state.record}`, 145, 35);
+            // Текст интерфейса
+            ctx.fillStyle = "#39eb52"; ctx.font = "bold 14px monospace"; ctx.fillText(`Score: ${state.score}`, 20, 30);
+            ctx.fillStyle = "#ebc42f"; ctx.fillText(`Record: ${state.record}`, 130, 30);
 
-            // ОРИГИНАЛЬНАЯ АНИМАЦИЯ ЦЕПИ ХУКА
+            // МИНУС 1 ИСПРАВЛЕН: Тонкая лазерная линия прицеливания (Пунктир)
+            if (state.aim.active && !state.hook.active) {
+                let angle = Math.atan2(state.aim.dy, state.aim.dx);
+                ctx.strokeStyle = "rgba(235, 64, 52, 0.6)"; ctx.lineWidth = 2;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.moveTo(state.pudge.x, state.pudge.y);
+                ctx.lineTo(state.pudge.x + Math.cos(angle) * state.hook.maxLen, state.pudge.y + Math.sin(angle) * state.hook.maxLen);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // АНИМАЦИЯ ХУКА (Цепь + металлический загнутый крюк на конце)
             if (state.hook.active) {
-                ctx.strokeStyle = "#8a8a8a"; ctx.lineWidth = 4;
-                ctx.setLineDash([5, 8]); // Превращаем сплошную линию в стальные звенья цепи
+                ctx.strokeStyle = "#9c9c9c"; ctx.lineWidth = 3.5;
+                ctx.setLineDash([4, 7]); // Звенья металлической цепи
                 ctx.beginPath(); ctx.moveTo(state.pudge.x, state.pudge.y); ctx.lineTo(state.hook.x, state.hook.y); ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Загнутый наконечник-крюк
+                // Наконечник хука (Мясистый изогнутый крюк)
                 ctx.save();
                 ctx.translate(state.hook.x, state.hook.y);
-                ctx.fillStyle = "#d1ad15"; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = "#b01919"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI, true); ctx.stroke();
+                let hookAngle = Math.atan2(state.hook.vy, state.hook.vx);
+                ctx.rotate(hookAngle);
+                ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+                // Лезвие хука
+                ctx.strokeStyle = "#b01919"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(0, 0, 10, -Math.PI/2, Math.PI/2, false); ctx.stroke();
                 ctx.restore();
             }
 
-            // Наш пиксельный Пудж (с эффектом прозрачности во время Шифта)
-            ctx.fillStyle = state.pudge.isPhaseShift ? "rgba(0,191,255,0.15)" : "rgba(40, 167, 69, 0.25)";
+            // Отрисовка нашего Пуджа с зеленым кругом под ним
+            ctx.fillStyle = state.pudge.isPhaseShift ? "rgba(0,191,255,0.15)" : "rgba(40, 167, 69, 0.22)";
             ctx.beginPath(); ctx.arc(state.pudge.x, state.pudge.y, state.pudge.radius + 6, 0, Math.PI*2); ctx.fill();
             
-            ctx.save(); ctx.translate(state.pudge.x, state.pudge.y);
-            if (state.pudge.isPhaseShift) ctx.globalAlpha = 0.4;
-            ctx.fillStyle = "#a66846"; ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2); ctx.fill(); // Тело
-            ctx.fillStyle = "#5c3924"; ctx.fillRect(-7, -21, 14, 7); // Его косичка
-            ctx.fillStyle = "#4f1a1a"; ctx.fillRect(-11, -3, 5, 5); ctx.fillRect(6, -3, 5, 5); // Детали
-            ctx.restore(); ctx.globalAlpha = 1.0;
+            let myAngle = Math.atan2(state.pudge.lastDir.y, state.pudge.lastDir.x);
+            drawPudgeCharacter(ctx, state.pudge.x, state.pudge.y, state.pudge.radius, myAngle, state.pudge.isPhaseShift, false);
 
-            // Вражеские Пуджи сверху реки
+            // Отрисовка вражеских Пуджей с красным кругом под ними
             state.enemies.forEach(env => {
-                ctx.fillStyle = "rgba(220, 53, 69, 0.2)";
+                ctx.fillStyle = "rgba(220, 53, 69, 0.18)";
                 ctx.beginPath(); ctx.arc(env.x, env.y, env.radius + 6, 0, Math.PI*2); ctx.fill();
-
-                ctx.save(); ctx.translate(env.x, env.y);
-                ctx.fillStyle = "#a64646"; ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#3c1818"; ctx.fillRect(-5, -19, 10, 5);
-                ctx.restore();
+                drawPudgeCharacter(ctx, env.x, env.y, env.radius, env.angle, false, true);
             });
         }
 
