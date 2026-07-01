@@ -1,738 +1,298 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pudge Wars</title>
+    <title>Pudge Wars Mobile 1:1 Precise</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body {
-            background: #0a0a0a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-            touch-action: none;
-        }
-        #game {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            aspect-ratio: 1/1;
-            background: #1a1a1a;
-            touch-action: none;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-            background: #2d2d2d;
-        }
-        #ui {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        #score {
-            position: absolute;
-            top: 12px;
-            left: 16px;
-            color: #fff;
-            font-size: 18px;
-            font-weight: 600;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
-            font-family: 'Inter', sans-serif;
-            pointer-events: none;
-        }
-        #score .kills { color: #4caf50; }
-        #score .deaths { color: #f44336; }
-        #game-over {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.75);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            pointer-events: auto;
-            backdrop-filter: blur(4px);
-        }
-        #game-over.active { display: flex; }
-        #game-over h1 {
-            color: #ff1744;
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            font-family: 'Inter', sans-serif;
-            text-shadow: 0 0 30px rgba(255,23,68,0.3);
-        }
-        #game-over p {
-            color: #fff;
-            font-size: 20px;
-            margin-bottom: 24px;
-            opacity: 0.8;
-            font-family: 'Inter', sans-serif;
-        }
-        #game-over button {
-            padding: 14px 40px;
-            font-size: 18px;
-            font-weight: 600;
-            background: #4caf50;
-            border: none;
-            color: #fff;
-            border-radius: 12px;
-            cursor: pointer;
-            pointer-events: auto;
-            transition: all 0.15s;
-            font-family: 'Inter', sans-serif;
-        }
-        #game-over button:active { transform: scale(0.95); background: #43a047; }
-        #watermark {
-            position: absolute;
-            bottom: 12px;
-            right: 16px;
-            color: rgba(255,255,255,0.15);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            pointer-events: none;
-            font-family: 'Inter', sans-serif;
-        }
-        @media (max-width: 400px) {
-            #score { font-size: 14px; top: 8px; left: 12px; }
-            #game-over h1 { font-size: 28px; }
-            #game-over p { font-size: 16px; }
-            #game-over button { padding: 12px 28px; font-size: 16px; }
-        }
+        body { margin: 0; background: #000; overflow: hidden; font-family: Arial, sans-serif; user-select: none; touch-action: none; }
+        canvas { display: block; margin: 0 auto; background: #224d17; max-width: 100vw; max-height: 60vh; border-bottom: 4px solid #111; }
+        
+        /* Панель скиллов */
+        #skills-panel { position: absolute; bottom: 135px; left: 15px; display: flex; gap: 10px; }
+        .skill-wrapper { position: relative; width: 50px; height: 50px; }
+        .skill { width: 100%; height: 100%; border: 2px solid #333; border-radius: 6px; background-size: cover; background-color: #111; box-shadow: 0 0 8px rgba(0,0,0,0.6); }
+        
+        /* Иконки (используем встроенные CSS-градиенты/цвета как заглушки, чтобы код не ломался без картинок) */
+        #skill-q { background-image: url('https://pudge-wars.com/assets/images/hook_icon.png'), linear-space; background-color: #5a1111; }
+        #skill-w { background-image: url('https://pudge-wars.com/assets/images/strid_icon.png'), linear-space; background-color: #113a5a; }
+        #skill-e { background-image: url('https://pudge-wars.com/assets/images/blink_icon.png'), linear-space; background-color: #5a4c11; }
+        
+        .cooldown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border-radius: 6px; display: none; }
+        .hotkey { position: absolute; bottom: 2px; right: 4px; color: #ffcc00; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+
+        /* Джойстики */
+        .joystick-container { position: absolute; bottom: 15px; width: 100px; height: 100px; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; }
+        #left-joy { left: 25px; }
+        #right-joy { right: 25px; }
+        .stick { position: absolute; width: 40px; height: 40px; background: rgba(255,255,255,0.3); border-radius: 50%; top: 30px; left: 30px; }
     </style>
 </head>
 <body>
-<div id="game">
-    <canvas id="canvas"></canvas>
-    <div id="ui">
-        <div id="score">
-            🏆 <span class="kills" id="killsDisplay">0</span>
-            &nbsp;&nbsp;💀 <span class="deaths" id="deathsDisplay">0</span>
+
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <div id="skills-panel">
+        <div class="skill-wrapper">
+            <div class="skill" id="skill-q"></div>
+            <div class="cooldown-overlay" id="cd-q">0</div>
+            <div class="hotkey">Q</div>
         </div>
-        <div id="game-over">
-            <h1>💀 YOU DIED</h1>
-            <p>Score: <span id="finalScore">0</span></p>
-            <button id="restartBtn">↻ PLAY AGAIN</button>
+        <div class="skill-wrapper">
+            <div class="skill" id="skill-w"></div>
+            <div class="cooldown-overlay" id="cd-w">0</div>
+            <div class="hotkey">W</div>
         </div>
-        <div id="watermark">PUDGE WARS</div>
+        <div class="skill-wrapper">
+            <div class="skill" id="skill-e"></div>
+            <div class="cooldown-overlay" id="cd-e">0</div>
+            <div class="hotkey">E</div>
+        </div>
     </div>
-</div>
 
-<script>
-// ================================================================
-// ОРИГИНАЛЬНАЯ ИГРА PUDGE WARS
-// Оригинальные пуджи — зелёные с красными глазами
-// ================================================================
+    <div class="joystick-container" id="left-joy"><div class="stick" id="left-stick"></div></div>
+    <div class="joystick-container" id="right-joy"><div class="stick" id="right-stick"></div></div>
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const W = canvas.width = 500;
-const H = canvas.height = 500;
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
-// DOM
-const killsDisplay = document.getElementById('killsDisplay');
-const deathsDisplay = document.getElementById('deathsDisplay');
-const finalScore = document.getElementById('finalScore');
-const gameOverEl = document.getElementById('game-over');
-const restartBtn = document.getElementById('restartBtn');
+        // Прямые ссылки на пиксели с оригинального сайта
+        const pudgeImg = new Image(); pudgeImg.src = "https://pudge-wars.com/assets/images/pudge.png";
+        const enemyImg = new Image(); enemyImg.src = "https://pudge-wars.com/assets/images/pudge_red.png";
 
-// GAME STATE
-const G = {
-    kills: 0,
-    deaths: 0,
-    gameOver: false,
-    hero: { x: W/2, y: H/2, r: 20 },
-    bots: [],
-    hook: null,
-    particles: [],
-    aimAngle: 0,
-    leftJoystick: { active: false, dx: 0, dy: 0, startX: 0, startY: 0, id: null },
-    rightJoystick: { active: false, dx: 0, dy: 0, startX: 0, startY: 0, id: null },
-    spawnTimer: 0,
-    maxBots: 3,
-    heroHookCooldown: 0,
-    heroMaxHookCooldown: 25,
-};
+        let state = {
+            score: 0, record: 0,
+            pudge: { 
+                x: 400, y: 420, radius: 24, speed: 4.5,
+                isPhaseShift: false, phaseShiftTimer: 0,
+                lastMoveDir: { x: 0, y: -1 } // Для направления блинка
+            },
+            enemies: [
+                { x: 200, y: 90, radius: 24, vx: 2 },
+                { x: 400, y: 70, radius: 24, vx: -2.5 },
+                { x: 600, y: 100, radius: 24, vx: 1.8 }
+            ],
+            hook: { x: 0, y: 0, vx: 0, vy: 0, active: false, startX: 0, startY: 0, maxLen: 380, returning: false },
+            cooldowns: {
+                q: { current: 0, max: 4 }, // Хук автоматически активируется правым джойстиком
+                w: { current: 0, max: 6 }, // Шифт Пака
+                e: { current: 0, max: 10 } // Блинк Даггер
+            }
+        };
 
-// ================================================================
-// ОРИГИНАЛЬНЫЙ ПУДЖ (РИСОВАНИЕ)
-// ================================================================
-function drawPudge(x, y, r, color = '#4caf50', isHero = true) {
-    // Тело
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Тень под глазами (оригинальный стиль)
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.beginPath();
-    ctx.ellipse(x, y + 4, r * 0.8, r * 0.3, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Красные глаза (как в оригинале)
-    const eyeY = y - 3;
-    const eyeOffset = r * 0.35;
-    const eyeR = r * 0.25;
-    
-    // Белки
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.ellipse(x - eyeOffset, eyeY, eyeR * 1.2, eyeR * 1.4, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + eyeOffset, eyeY, eyeR * 1.2, eyeR * 1.4, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Красные зрачки (как у Pudge)
-    ctx.fillStyle = '#ff1744';
-    ctx.shadowColor = '#ff1744';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(x - eyeOffset + 2, eyeY + 1, eyeR * 0.7, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + eyeOffset + 2, eyeY + 1, eyeR * 0.7, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    
-    // Рот (шрам как у Pudge)
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(x, y + 6, r * 0.4, 0.1, Math.PI - 0.1);
-    ctx.stroke();
-    
-    // Крюк на спине (только для героя)
-    if (isHero) {
-        ctx.strokeStyle = '#8d6e63';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(x + r * 0.6, y - r * 0.3);
-        ctx.lineTo(x + r * 1.2, y - r * 0.6);
-        ctx.lineTo(x + r * 1.4, y - r * 0.2);
-        ctx.stroke();
-        // Крюк
-        ctx.fillStyle = '#ff6b6b';
-        ctx.beginPath();
-        ctx.arc(x + r * 1.3, y - r * 0.1, 4, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-}
+        // Векторы движения от левого джойстика
+        let moveVector = { x: 0, y: 0 };
 
-// ================================================================
-// BOTS
-// ================================================================
-function createBots() {
-    G.bots = [];
-    const colors = ['#c0392b', '#2980b9', '#8e44ad'];
-    const positions = [
-        { x: 80, y: 80 },
-        { x: W - 80, y: 80 },
-        { x: 80, y: H - 80 },
-    ];
-    for (let i = 0; i < 3; i++) {
-        G.bots.push({
-            x: positions[i].x,
-            y: positions[i].y,
-            r: 18,
-            color: colors[i],
-            alive: true,
-            hookCooldown: 0,
-            maxHookCooldown: 60 + Math.random() * 40,
-            respawnTimer: 0,
-            targetX: positions[i].x,
-            targetY: positions[i].y,
-            hook: null,
+        setupJoystick("left-joy", "left-stick", (dx, dy) => {
+            moveVector.x = dx;
+            moveVector.y = dy;
+            if (dx !== 0 || dy !== 0) {
+                // Запоминаем последнее направление для блинка
+                let len = Math.sqrt(dx*dx + dy*dy);
+                state.pudge.lastMoveDir = { x: dx / len, y: dy / len };
+            }
         });
-    }
-}
 
-// ================================================================
-// PARTICLES
-// ================================================================
-function spawnParticles(x, y, color, count = 18) {
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const speed = 1 + Math.random() * 3;
-        G.particles.push({
-            x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 20 + Math.random() * 20,
-            maxLife: 40,
-            r: 2 + Math.random() * 3,
-            color,
+        setupJoystick("right-joy", "right-stick", (dx, dy, isRelease) => {
+            if (isRelease && !state.hook.active && state.cooldowns.q.current === 0) {
+                // Запуск ХУКА при отпускании правого джойстика
+                state.hook.active = true;
+                state.hook.returning = false;
+                state.hook.x = state.pudge.x;
+                state.hook.y = state.pudge.y;
+                state.hook.startX = state.pudge.x;
+                state.hook.startY = state.pudge.y;
+                
+                let angle = Math.atan2(dy, dx);
+                state.hook.vx = Math.cos(angle) * 14;
+                state.hook.vy = Math.sin(angle) * 14;
+                
+                startCooldown('q');
+            }
         });
-    }
-}
 
-// ================================================================
-// HOOK
-// ================================================================
-function throwHook(angle) {
-    if (G.heroHookCooldown > 0 || G.hook || G.gameOver) return;
-    G.heroHookCooldown = G.heroMaxHookCooldown;
-    const startX = G.hero.x, startY = G.hero.y;
-    const length = 280;
-    const endX = startX + Math.cos(angle) * length;
-    const endY = startY + Math.sin(angle) * length;
-    G.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 22 };
+        // Клик по кнопкам скиллов на экране
+        document.getElementById("skill-w").addEventListener("touchstart", (e) => { e.preventDefault(); usePhaseShift(); });
+        document.getElementById("skill-e").addEventListener("touchstart", (e) => { e.preventDefault(); useBlink(); });
 
-    for (const bot of G.bots) {
-        if (!bot.alive) continue;
-        const d = distToSegment(bot.x, bot.y, startX, startY, endX, endY);
-        if (d < 28) {
-            bot.alive = false;
-            bot.respawnTimer = 180;
-            G.kills++;
-            updateUI();
-            spawnParticles(bot.x, bot.y, '#ff6b6b', 24);
+        function usePhaseShift() {
+            if (state.cooldowns.w.current > 0 || state.pudge.isPhaseShift) return;
+            state.pudge.isPhaseShift = true;
+            state.pudge.phaseShiftTimer = 90; // Примерно 1.5 секунды при 60fps
+            startCooldown('w');
         }
-    }
-}
 
-function distToSegment(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1, dy = y2 - y1;
-    const lenSq = dx*dx + dy*dy;
-    if (lenSq === 0) return Math.sqrt((px-x1)*(px-x1) + (py-y1)*(py-y1));
-    let t = ((px-x1)*dx + (py-y1)*dy) / lenSq;
-    t = Math.max(0, Math.min(1, t));
-    const projX = x1 + t*dx, projY = y1 + t*dy;
-    return Math.sqrt((px-projX)*(px-projX) + (py-projY)*(py-projY));
-}
+        function useBlink() {
+            if (state.cooldowns.e.current > 0 || state.pudge.isPhaseShift) return;
+            let blinkDist = 140; // Дальность блинка
+            state.pudge.x += state.pudge.lastMoveDir.x * blinkDist;
+            state.pudge.y += state.pudge.lastMoveDir.y * blinkDist;
+            
+            // Ограничения карты
+            if(state.pudge.x < 30) state.pudge.x = 30;
+            if(state.pudge.x > canvas.width - 30) state.pudge.x = canvas.width - 30;
+            if(state.pudge.y < 290) state.pudge.y = 290; // Нельзя прыгать в реку или на чужую половину
+            if(state.pudge.y > canvas.height - 30) state.pudge.y = canvas.height - 30;
 
-// ================================================================
-// JOYSTICKS
-// ================================================================
-function handleTouchStart(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    for (const touch of e.changedTouches) {
-        const x = (touch.clientX - rect.left) * (W / rect.width);
-        const y = (touch.clientY - rect.top) * (H / rect.height);
-        if (x < W / 2) {
-            G.leftJoystick.active = true;
-            G.leftJoystick.id = touch.identifier;
-            G.leftJoystick.startX = x;
-            G.leftJoystick.startY = y;
-            G.leftJoystick.dx = 0;
-            G.leftJoystick.dy = 0;
-        } else {
-            G.rightJoystick.active = true;
-            G.rightJoystick.id = touch.identifier;
-            G.rightJoystick.startX = x;
-            G.rightJoystick.startY = y;
-            G.rightJoystick.dx = 0;
-            G.rightJoystick.dy = 0;
+            startCooldown('e');
         }
-    }
-}
 
-function handleTouchMove(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    for (const touch of e.changedTouches) {
-        const x = (touch.clientX - rect.left) * (W / rect.width);
-        const y = (touch.clientY - rect.top) * (H / rect.height);
-        if (G.leftJoystick.id === touch.identifier && G.leftJoystick.active) {
-            const dx = x - G.leftJoystick.startX;
-            const dy = y - G.leftJoystick.startY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 0) {
-                const angle = Math.atan2(dy, dx);
-                const move = Math.min(dist / 14, 1) * 3.2;
-                G.hero.x += Math.cos(angle) * move;
-                G.hero.y += Math.sin(angle) * move;
-                G.hero.x = Math.max(20, Math.min(W - 20, G.hero.x));
-                G.hero.y = Math.max(20, Math.min(H - 20, G.hero.y));
-            }
-            const maxDist = 50;
-            if (dist > maxDist) {
-                G.leftJoystick.dx = (dx / dist) * maxDist;
-                G.leftJoystick.dy = (dy / dist) * maxDist;
+        function startCooldown(ability) {
+            state.cooldowns[ability].current = state.cooldowns[ability].max;
+            let overlay = document.getElementById(`cd-${ability}`);
+            overlay.style.display = "flex";
+            overlay.innerText = state.cooldowns[ability].current;
+
+            let interval = setInterval(() => {
+                state.cooldowns[ability].current--;
+                if (state.cooldowns[ability].current <= 0) {
+                    state.cooldowns[ability].current = 0;
+                    overlay.style.display = "none";
+                    clearInterval(interval);
+                } else {
+                    overlay.innerText = state.cooldowns[ability].current;
+                }
+            }, 1000);
+        }
+
+        function setupJoystick(containerId, stickId, callback) {
+            const container = document.getElementById(containerId);
+            const stick = document.getElementById(stickId);
+            let active = false;
+
+            container.addEventListener("touchstart", (e) => { active = true; });
+            container.addEventListener("touchmove", (e) => {
+                if (!active) return;
+                let t = e.touches[0];
+                let rect = container.getBoundingClientRect();
+                let dx = t.clientX - (rect.left + rect.width/2);
+                let dy = t.clientY - (rect.top + rect.height/2);
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; }
+                stick.style.transform = `translate(${dx}px, ${dy}px)`;
+                callback(dx/40, dy/40, false);
+            });
+            container.addEventListener("touchend", () => {
+                active = false;
+                let matrix = new WebKitCSSMatrix(stick.style.transform || window.getComputedStyle(stick).transform);
+                stick.style.transform = "translate(0px, 0px)";
+                callback(matrix.m41 / 40 || 0, matrix.m42 / 40 || -1, true);
+                if(containerId === "left-joy") { moveVector.x = 0; moveVector.y = 0; }
+            });
+        }
+
+        function update() {
+            // Если в Шифте — стоим на месте и уменьшаем таймер
+            if (state.pudge.isPhaseShift) {
+                state.pudge.phaseShiftTimer--;
+                if (state.pudge.phaseShiftTimer <= 0) state.pudge.isPhaseShift = false;
             } else {
-                G.leftJoystick.dx = dx;
-                G.leftJoystick.dy = dy;
+                // Обычная ходьба
+                state.pudge.x += moveVector.x * state.pudge.speed;
+                state.pudge.y += moveVector.y * state.pudge.speed;
+                
+                if(state.pudge.x < 30) state.pudge.x = 30;
+                if(state.pudge.x > canvas.width - 30) state.pudge.x = canvas.width - 30;
+                if(state.pudge.y < 290) state.pudge.y = 290; // Ограничение нашей половины поля
+                if(state.pudge.y > canvas.height - 30) state.pudge.y = canvas.height - 30;
+            }
+
+            // Вражеские Пуджи бегают сверху
+            state.enemies.forEach(env => {
+                env.x += env.vx;
+                if(env.x < 30 || env.x > canvas.width - 30) env.vx *= -1;
+            });
+
+            // Полет хука
+            if (state.hook.active) {
+                if (!state.hook.returning) {
+                    state.hook.x += state.hook.vx;
+                    state.hook.y += state.hook.vy;
+
+                    // Проверяем дистанцию возврата хука
+                    let curLen = Math.sqrt((state.hook.x - state.hook.startX)**2 + (state.hook.y - state.hook.startY)**2);
+                    if (curLen >= state.hook.maxLen) state.hook.returning = true;
+
+                    // Проверка попадания во врага
+                    state.enemies.forEach(env => {
+                        let dist = Math.sqrt((state.hook.x - env.x)**2 + (state.hook.y - env.y)**2);
+                        if (dist < env.radius + 12) {
+                            state.score++;
+                            if(state.score > state.record) state.record = state.score;
+                            state.hook.returning = true;
+                            // Респавн врага в случайном месте сверху
+                            env.x = Math.random() * (canvas.width - 60) + 30;
+                        }
+                    });
+                } else {
+                    // Возвращение хука к Пуджу
+                    let dx = state.pudge.x - state.hook.x;
+                    let dy = state.pudge.y - state.hook.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 20) {
+                        state.hook.active = false;
+                    } else {
+                        state.hook.x += (dx/dist) * 16;
+                        state.hook.y += (dy/dist) * 16;
+                    }
+                }
             }
         }
-        if (G.rightJoystick.id === touch.identifier && G.rightJoystick.active) {
-            const dx = x - G.rightJoystick.startX;
-            const dy = y - G.rightJoystick.startY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 5) G.aimAngle = Math.atan2(dy, dx);
-            const maxDist = 60;
-            if (dist > maxDist) {
-                G.rightJoystick.dx = (dx / dist) * maxDist;
-                G.rightJoystick.dy = (dy / dist) * maxDist;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Трава карты
+            ctx.fillStyle = "#2d5e21"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Рисуем РЕКУ по центру
+            ctx.fillStyle = "#1d3a54"; ctx.fillRect(0, 220, canvas.width, 60);
+
+            // Счет
+            ctx.fillStyle = "#39eb52"; ctx.font = "bold 16px monospace";
+            ctx.fillText(`Score: ${state.score}`, 20, 35);
+            ctx.fillStyle = "#ebc42f";
+            ctx.fillText(`Record: ${state.record}`, 140, 35);
+
+            // Отрисовка Хука
+            if (state.hook.active) {
+                ctx.strokeStyle = "#acacac"; ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(state.pudge.x, state.pudge.y);
+                ctx.lineTo(state.hook.x, state.hook.y);
+                ctx.stroke();
+                
+                // Наконечник хука
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillRect(state.hook.x - 6, state.hook.y - 6, 12, 12);
+            }
+
+            // Наш Пудж
+            if (state.pudge.isPhaseShift) {
+                // Если в шифте — рисуем прозрачный синеватый силуэт (как у Пака)
+                ctx.fillStyle = "rgba(0, 191, 255, 0.2)";
+                ctx.beginPath(); ctx.arc(state.pudge.x, state.pudge.y, state.pudge.radius, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 0.3;
+                ctx.drawImage(pudgeImg, state.pudge.x - 25, state.pudge.y - 25, 50, 50);
+                ctx.globalAlpha = 1.0;
             } else {
-                G.rightJoystick.dx = dx;
-                G.rightJoystick.dy = dy;
+                ctx.fillStyle = "rgba(40, 167, 69, 0.3)";
+                ctx.beginPath(); ctx.arc(state.pudge.x, state.pudge.y, state.pudge.radius + 4, 0, Math.PI*2); ctx.fill();
+                ctx.drawImage(pudgeImg, state.pudge.x - 25, state.pudge.y - 25, 50, 50);
             }
+
+            // Враги
+            state.enemies.forEach(env => {
+                ctx.fillStyle = "rgba(220, 53, 69, 0.2)";
+                ctx.beginPath(); ctx.arc(env.x, env.y, env.radius + 4, 0, Math.PI*2); ctx.fill();
+                ctx.drawImage(enemyImg, env.x - 25, env.y - 25, 50, 50);
+            });
         }
-    }
-}
 
-function handleTouchEnd(e) {
-    e.preventDefault();
-    for (const touch of e.changedTouches) {
-        if (G.leftJoystick.id === touch.identifier) {
-            G.leftJoystick.active = false;
-            G.leftJoystick.dx = 0;
-            G.leftJoystick.dy = 0;
-            G.leftJoystick.id = null;
-        }
-        if (G.rightJoystick.id === touch.identifier) {
-            const dist = Math.sqrt(G.rightJoystick.dx**2 + G.rightJoystick.dy**2);
-            if (dist > 20) throwHook(G.aimAngle);
-            G.rightJoystick.active = false;
-            G.rightJoystick.dx = 0;
-            G.rightJoystick.dy = 0;
-            G.rightJoystick.id = null;
-        }
-    }
-}
-
-canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
-// MOUSE FALLBACK
-let mouseDown = false;
-canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (W / rect.width);
-    const y = (e.clientY - rect.top) * (H / rect.height);
-    if (x < W/2) {
-        G.leftJoystick.active = true;
-        G.leftJoystick.startX = x;
-        G.leftJoystick.startY = y;
-    } else {
-        G.rightJoystick.active = true;
-        G.rightJoystick.startX = x;
-        G.rightJoystick.startY = y;
-    }
-    mouseDown = true;
-});
-canvas.addEventListener('mousemove', (e) => {
-    if (!mouseDown) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (W / rect.width);
-    const y = (e.clientY - rect.top) * (H / rect.height);
-    if (G.leftJoystick.active) {
-        const dx = x - G.leftJoystick.startX;
-        const dy = y - G.leftJoystick.startY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 0) {
-            const angle = Math.atan2(dy, dx);
-            const move = Math.min(dist / 14, 1) * 3.2;
-            G.hero.x += Math.cos(angle) * move;
-            G.hero.y += Math.sin(angle) * move;
-            G.hero.x = Math.max(20, Math.min(W - 20, G.hero.x));
-            G.hero.y = Math.max(20, Math.min(H - 20, G.hero.y));
-        }
-        const maxDist = 50;
-        if (dist > maxDist) {
-            G.leftJoystick.dx = (dx / dist) * maxDist;
-            G.leftJoystick.dy = (dy / dist) * maxDist;
-        } else {
-            G.leftJoystick.dx = dx;
-            G.leftJoystick.dy = dy;
-        }
-    }
-    if (G.rightJoystick.active) {
-        const dx = x - G.rightJoystick.startX;
-        const dy = y - G.rightJoystick.startY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 5) G.aimAngle = Math.atan2(dy, dx);
-        const maxDist = 60;
-        if (dist > maxDist) {
-            G.rightJoystick.dx = (dx / dist) * maxDist;
-            G.rightJoystick.dy = (dy / dist) * maxDist;
-        } else {
-            G.rightJoystick.dx = dx;
-            G.rightJoystick.dy = dy;
-        }
-    }
-});
-canvas.addEventListener('mouseup', () => {
-    if (G.rightJoystick.active) {
-        const dist = Math.sqrt(G.rightJoystick.dx**2 + G.rightJoystick.dy**2);
-        if (dist > 20) throwHook(G.aimAngle);
-    }
-    G.leftJoystick.active = false;
-    G.leftJoystick.dx = 0;
-    G.rightJoystick.active = false;
-    G.rightJoystick.dx = 0;
-    mouseDown = false;
-});
-canvas.addEventListener('mouseleave', () => {
-    G.leftJoystick.active = false;
-    G.leftJoystick.dx = 0;
-    G.rightJoystick.active = false;
-    G.rightJoystick.dx = 0;
-    mouseDown = false;
-});
-
-// ================================================================
-// UI
-// ================================================================
-function updateUI() {
-    killsDisplay.textContent = G.kills;
-    deathsDisplay.textContent = G.deaths;
-}
-
-// ================================================================
-// BOTS AI
-// ================================================================
-function updateBots() {
-    for (const bot of G.bots) {
-        if (!bot.alive) {
-            bot.respawnTimer--;
-            if (bot.respawnTimer <= 0) {
-                bot.alive = true;
-                bot.x = 30 + Math.random() * (W - 60);
-                bot.y = 30 + Math.random() * (H - 60);
-                bot.hookCooldown = 0;
-            }
-            continue;
-        }
-        const dx = G.hero.x - bot.x;
-        const dy = G.hero.y - bot.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 60) {
-            const speed = 0.8;
-            bot.x += (dx / dist) * speed;
-            bot.y += (dy / dist) * speed;
-        } else if (dist < 40) {
-            const speed = 0.4;
-            bot.x -= (dx / dist) * speed;
-            bot.y -= (dy / dist) * speed;
-        }
-        bot.hookCooldown--;
-        if (bot.hookCooldown <= 0 && dist < 280 && dist > 30) {
-            bot.hookCooldown = bot.maxHookCooldown;
-            const angle = Math.atan2(dy, dx);
-            const startX = bot.x, startY = bot.y;
-            const len = 260;
-            const endX = startX + Math.cos(angle) * len;
-            const endY = startY + Math.sin(angle) * len;
-            const d = distToSegment(G.hero.x, G.hero.y, startX, startY, endX, endY);
-            if (d < 28) {
-                G.deaths++;
-                G.gameOver = true;
-                finalScore.textContent = G.kills;
-                gameOverEl.classList.add('active');
-                updateUI();
-                spawnParticles(G.hero.x, G.hero.y, '#ff1744', 30);
-            }
-            bot.hook = { x1: startX, y1: startY, x2: endX, y2: endY, life: 20 };
-        }
-        if (bot.hook) {
-            bot.hook.life--;
-            if (bot.hook.life <= 0) bot.hook = null;
-        }
-    }
-}
-
-// ================================================================
-// GAME LOOP
-// ================================================================
-function update() {
-    if (G.gameOver) return;
-
-    if (G.heroHookCooldown > 0) G.heroHookCooldown--;
-
-    if (G.hook) {
-        G.hook.life--;
-        if (G.hook.life <= 0) G.hook = null;
-    }
-
-    for (let i = G.particles.length - 1; i >= 0; i--) {
-        const p = G.particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-        if (p.life <= 0) G.particles.splice(i, 1);
-    }
-
-    updateBots();
-
-    G.spawnTimer++;
-    const alive = G.bots.filter(b => b.alive).length;
-    if (G.spawnTimer > 120 && alive < G.maxBots) {
-        G.spawnTimer = 0;
-        for (const bot of G.bots) {
-            if (!bot.alive) {
-                bot.alive = true;
-                bot.x = 30 + Math.random() * (W - 60);
-                bot.y = 30 + Math.random() * (H - 60);
-                bot.hookCooldown = 0;
-                break;
-            }
-        }
-    }
-}
-
-function draw() {
-    ctx.clearRect(0, 0, W, H);
-
-    // ARENA
-    ctx.fillStyle = '#2d2d2d';
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < W; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, H);
-        ctx.stroke();
-    }
-    for (let y = 0; y < H; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(W, y);
-        ctx.stroke();
-    }
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, W-4, H-4);
-
-    // BOTS (ОРИГИНАЛЬНЫЕ ПУДЖИ)
-    for (const bot of G.bots) {
-        if (!bot.alive) continue;
-        drawPudge(bot.x, bot.y, bot.r, bot.color, false);
-        if (bot.hook) {
-            ctx.strokeStyle = '#ff6b6b';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(bot.hook.x1, bot.hook.y1);
-            ctx.lineTo(bot.hook.x2, bot.hook.y2);
-            ctx.stroke();
-            ctx.fillStyle = '#ff6b6b';
-            ctx.beginPath();
-            ctx.arc(bot.hook.x2, bot.hook.y2, 6, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-    }
-
-    // PLAYER HOOK
-    if (G.hook) {
-        ctx.strokeStyle = '#ff6b6b';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(G.hook.x1, G.hook.y1);
-        ctx.lineTo(G.hook.x2, G.hook.y2);
-        ctx.stroke();
-        ctx.fillStyle = '#ff6b6b';
-        ctx.beginPath();
-        ctx.arc(G.hook.x2, G.hook.y2, 8, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-
-    // HERO (ОРИГИНАЛЬНЫЙ ПУДЖ)
-    drawPudge(G.hero.x, G.hero.y, G.hero.r, '#4caf50', true);
-
-    // AIM LINE
-    if (G.rightJoystick.active && G.rightJoystick.dx !== 0) {
-        const angle = G.aimAngle;
-        const len = 60;
-        const endX = G.hero.x + Math.cos(angle) * len;
-        const endY = G.hero.y + Math.sin(angle) * len;
-        ctx.strokeStyle = 'rgba(255,107,107,0.4)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 6]);
-        ctx.beginPath();
-        ctx.moveTo(G.hero.x, G.hero.y);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    // PARTICLES
-    for (const p of G.particles) {
-        ctx.globalAlpha = p.life / p.maxLife;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.r/2, p.y - p.r/2, p.r, p.r);
-    }
-    ctx.globalAlpha = 1;
-
-    // JOYSTICKS
-    if (G.leftJoystick.active) {
-        const jx = G.leftJoystick.startX;
-        const jy = G.leftJoystick.startY;
-        ctx.strokeStyle = 'rgba(76,175,80,0.25)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(jx, jy, 45, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(76,175,80,0.15)';
-        ctx.beginPath();
-        ctx.arc(jx + G.leftJoystick.dx, jy + G.leftJoystick.dy, 18, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-    if (G.rightJoystick.active) {
-        const jx = G.rightJoystick.startX;
-        const jy = G.rightJoystick.startY;
-        ctx.strokeStyle = 'rgba(255,107,107,0.25)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(jx, jy, 45, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(255,107,107,0.15)';
-        ctx.beginPath();
-        ctx.arc(jx + G.rightJoystick.dx, jy + G.rightJoystick.dy, 18, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-}
-
-// ================================================================
-// RESTART
-// ================================================================
-restartBtn.addEventListener('click', () => {
-    G.gameOver = false;
-    G.kills = 0;
-    G.deaths = 0;
-    G.hook = null;
-    G.particles = [];
-    G.hero.x = W/2;
-    G.hero.y = H/2;
-    G.heroHookCooldown = 0;
-    gameOverEl.classList.remove('active');
-    updateUI();
-    createBots();
-});
-
-// ================================================================
-// START
-// ================================================================
-createBots();
-updateUI();
-
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-loop();
-
-console.log('🎮 Pudge Wars — с оригинальными пуджами!');
-console.log('🟢 Зелёные пуджи с красными глазами — как в Dota 2');
-console.log('🕹️ Левым джойстиком ходишь, правым — кидаешь крюк');
-</script>
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        loop();
+    </script>
 </body>
 </html>
