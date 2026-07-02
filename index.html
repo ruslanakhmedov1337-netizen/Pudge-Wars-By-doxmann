@@ -60,7 +60,7 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Загрузка спрайта оригинального Пуджа, которого ты скинул
+        // Загрузка спрайта твоего нового пиксельного Пуджа из image_7.png
         const pudgeSprite = new Image();
         pudgeSprite.src = 'pudge_sprite.png';
 
@@ -74,7 +74,7 @@
         // Позиционирование объектов с учетом масштаба экрана
         let state = {
             score: 0, record: 0,
-            pudge: { x: window.innerWidth / 2, y: window.innerHeight * 0.78, radius: 22, speed: 4.5, isPhaseShift: false, phaseShiftTimer: 0, lastDir: { x: 0, y: -1 } },
+            pudge: { x: window.innerWidth / 2, y: window.innerHeight * 0.78, radius: 25, speed: 4.5, isPhaseShift: false, phaseShiftTimer: 0, lastDir: { x: 0, y: -1 } },
             enemies: [],
             hook: { x: 0, y: 0, vx: 0, vy: 0, active: false, startX: 0, startY: 0, maxLen: window.innerHeight * 0.55, returning: false },
             aim: { active: false, dx: 0, dy: 0 }, // Логика линии прицеливания
@@ -88,7 +88,7 @@
                 state.enemies.push({
                     x: sector * i + sector / 2,
                     y: canvas.height * 0.15 + Math.random() * 40,
-                    radius: 22,
+                    radius: 25,
                     vx: (Math.random() > 0.5 ? 1 : -1) * (1.8 + Math.random() * 1.2),
                     angle: Math.PI // Смотрят вниз на реку
                 });
@@ -156,7 +156,6 @@
         }
 
         function keepInBounds() {
-            let riverTop = canvas.height * 0.44;
             let riverBottom = canvas.height * 0.56;
             if(state.pudge.x < 25) state.pudge.x = 25;
             if(state.pudge.x > canvas.width - 25) state.pudge.x = canvas.width - 25;
@@ -231,43 +230,48 @@
             
             if (isShift) ctx.globalAlpha = 0.35;
 
-            // Если картинка-спрайт загружена — рисуем её, иначе детальную замену
+            // Рисуем твоего крутого пиксельного Пуджа из картинки
             if (pudgeSprite.complete && pudgeSprite.naturalWidth !== 0) {
+                // Корректируем разворот, так как спрайт смотрит лицом вверх
+                ctx.rotate(Math.PI); 
+                if (isEnemy) {
+                    // Вражеских Пуджей окрасим слегка в красный оттенок фильтром
+                    ctx.filter = "hue-rotate(320deg) saturate(1.5)";
+                }
                 ctx.drawImage(pudgeSprite, -radius, -radius, radius * 2, radius * 2);
             } else {
-                // Высококачественная fallback геометрия (оригинальный вид)
+                // Если картинка еще не загрузилась — временный красивый fallback
                 ctx.fillStyle = isEnemy ? "#a64646" : "#a66846";
                 ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.fill();
-                // Фартук / Руки
                 ctx.fillStyle = "#3c1818"; ctx.fillRect(-radius/2, -radius/4, radius, radius/2);
-                ctx.fillStyle = "#5c3924"; ctx.fillRect(-4, -radius - 2, 8, 6); // Косичка
             }
             ctx.restore();
             ctx.globalAlpha = 1.0;
+            ctx.filter = "none";
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Трава с текстурным заполнением
+            // Задний фон — Трава
             ctx.fillStyle = "#2c5421"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = "#274a1d"; ctx.lineWidth = 1;
             for (let i = 0; i < canvas.width; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
 
-            // Река, разделяющая поле в точных пропорциях оригинального сайта
+            // Река ровно по центру
             let rTop = canvas.height * 0.44;
             let rBottom = canvas.height * 0.56;
             ctx.fillStyle = "#182e44"; ctx.fillRect(0, rTop, canvas.width, rBottom - rTop);
             ctx.fillStyle = "#1c364f"; ctx.fillRect(0, rTop + 8, canvas.width, (rBottom - rTop) - 16);
 
-            // Текст интерфейса
+            // Интерфейс Счета
             ctx.fillStyle = "#39eb52"; ctx.font = "bold 14px monospace"; ctx.fillText(`Score: ${state.score}`, 20, 30);
             ctx.fillStyle = "#ebc42f"; ctx.fillText(`Record: ${state.record}`, 130, 30);
 
-            // МИНУС 1 ИСПРАВЛЕН: Тонкая лазерная линия прицеливания (Пунктир)
+            // ЛИНИЯ ПРИЦЕЛИВАНИЯ (Пунктирный красный лазер от правого джойстика)
             if (state.aim.active && !state.hook.active) {
                 let angle = Math.atan2(state.aim.dy, state.aim.dx);
-                ctx.strokeStyle = "rgba(235, 64, 52, 0.6)"; ctx.lineWidth = 2;
+                ctx.strokeStyle = "rgba(235, 64, 52, 0.75)"; ctx.lineWidth = 2.5;
                 ctx.setLineDash([6, 6]);
                 ctx.beginPath();
                 ctx.moveTo(state.pudge.x, state.pudge.y);
@@ -276,33 +280,32 @@
                 ctx.setLineDash([]);
             }
 
-            // АНИМАЦИЯ ХУКА (Цепь + металлический загнутый крюк на конце)
+            // Отрисовка летящего Крюка
             if (state.hook.active) {
                 ctx.strokeStyle = "#9c9c9c"; ctx.lineWidth = 3.5;
-                ctx.setLineDash([4, 7]); // Звенья металлической цепи
+                ctx.setLineDash([4, 7]); // Эффект железной цепи
                 ctx.beginPath(); ctx.moveTo(state.pudge.x, state.pudge.y); ctx.lineTo(state.hook.x, state.hook.y); ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Наконечник хука (Мясистый изогнутый крюк)
+                // Сам металлический наконечник-крюк
                 ctx.save();
                 ctx.translate(state.hook.x, state.hook.y);
                 let hookAngle = Math.atan2(state.hook.vy, state.hook.vx);
                 ctx.rotate(hookAngle);
-                ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
-                // Лезвие хука
+                ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
                 ctx.strokeStyle = "#b01919"; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.arc(0, 0, 10, -Math.PI/2, Math.PI/2, false); ctx.stroke();
                 ctx.restore();
             }
 
-            // Отрисовка нашего Пуджа с зеленым кругом под ним
+            // Зеленый круг под ногами нашего Пуджа
             ctx.fillStyle = state.pudge.isPhaseShift ? "rgba(0,191,255,0.15)" : "rgba(40, 167, 69, 0.22)";
             ctx.beginPath(); ctx.arc(state.pudge.x, state.pudge.y, state.pudge.radius + 6, 0, Math.PI*2); ctx.fill();
             
             let myAngle = Math.atan2(state.pudge.lastDir.y, state.pudge.lastDir.x);
             drawPudgeCharacter(ctx, state.pudge.x, state.pudge.y, state.pudge.radius, myAngle, state.pudge.isPhaseShift, false);
 
-            // Отрисовка вражеских Пуджей с красным кругом под ними
+            // Отрисовка врагов
             state.enemies.forEach(env => {
                 ctx.fillStyle = "rgba(220, 53, 69, 0.18)";
                 ctx.beginPath(); ctx.arc(env.x, env.y, env.radius + 6, 0, Math.PI*2); ctx.fill();
