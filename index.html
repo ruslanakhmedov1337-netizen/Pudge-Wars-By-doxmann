@@ -22,7 +22,7 @@
         .skill { width: 100%; height: 100%; border: 1.5px solid #444; border-radius: 4px; background-size: cover; background-position: center; background-color: #111; box-shadow: 0 3px 8px rgba(0,0,0,0.6); }
         
         /* Фильтр multiply убирает белый фон у иконки хука */
-        #skill-q { background-image: url('hook_icon.JPG'); background-color: #fff; mix-blend-mode: multiply; }
+        #skill-q { background-image: url('hook_icon.JPG.png'); background-color: #fff; mix-blend-mode: multiply; }
         #skill-w { background-image: url('shift_icon.png'); }
         #skill-e { background-image: url('blink_icon.png'); }
         
@@ -59,12 +59,12 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Твои текущие файлы из репозитория
+        // Твои финальные имена файлов с Гитхаба
         const pudgeSprite = new Image();
-        pudgeSprite.src = 'pudge_sprite.png.JPG';
+        pudgeSprite.src = 'pudge_sprite.png.JPG.png';
 
         const hookSprite = new Image();
-        hookSprite.src = 'hook_icon.JPG';
+        hookSprite.src = 'hook_icon.JPG.png';
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -296,15 +296,13 @@
             if (isShift) ctx.globalAlpha = 0.35;
 
             if (pudgeSprite.complete && pudgeSprite.naturalWidth !== 0) {
-                // Магия блендинга: "multiply" превращает чистый белый фон картинки в прозрачный
-                ctx.globalCompositeOperation = "multiply";
+                ctx.globalCompositeOperation = "multiply"; // Магия удаления белого фона
                 
                 if (isEnemy) {
-                    // Кровавый оттенок для врагов
                     ctx.filter = "hue-rotate(300deg) saturate(1.8) brightness(0.9)";
                 }
                 
-                // Рисуем картинку ровно (без вращения по осям)
+                // Рисуем картинку ровно (без вращения)
                 ctx.drawImage(pudgeSprite, -radius, -radius, radius * 2, radius * 2);
             } else {
                 ctx.fillStyle = isEnemy ? "#a64646" : "#a66846";
@@ -325,10 +323,10 @@
             ctx.save();
             ctx.translate(hookX, hookY);
             let hAngle = Math.atan2(vy, vx);
-            ctx.rotate(hAngle + Math.PI / 2); // Сам крюк на цепи пусть плавно смотрит по вектору полета
+            ctx.rotate(hAngle + Math.PI / 2); // Крюк смотрит в сторону полета
             
             if (hookSprite.complete && hookSprite.naturalWidth !== 0) {
-                ctx.globalCompositeOperation = "multiply"; // Удаление белого фона у летящего хука
+                ctx.globalCompositeOperation = "multiply"; // Магия удаления белого фона у хука
                 ctx.drawImage(hookSprite, -16, -16, 32, 32);
             } else {
                 ctx.fillStyle = "#d4af37"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
@@ -376,7 +374,7 @@
                 }
             });
 
-            // Зеленая подножка под игроком
+            // Подложка под игроком
             ctx.fillStyle = state.pudge.isPhaseShift ? "rgba(0,191,255,0.15)" : "rgba(40, 167, 69, 0.22)";
             ctx.beginPath(); ctx.arc(state.pudge.x, state.pudge.y, state.pudge.radius + 6, 0, Math.PI*2); ctx.fill();
             
